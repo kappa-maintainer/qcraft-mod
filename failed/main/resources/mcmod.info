@@ -1,0 +1,16 @@
+[
+  {
+    "modid": "${mod_id}",
+    "name": "${mod_name}",
+    "description": "${mod_description}",
+    "version": "${mod_version}",
+    "mcversion": "${minecraft_version}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["Daniel Ratcliffe", "TeacherGaming LLC", "Google Creative Lab", "${mod_authors}"],
+    "credits": "Created by Daniel Ratcliffe for TeacherGaming LLC",
+    "logoFile" : "assets/qcraft/textures/gui/logo.png",
+    "screenshots": [],
+    "dependencies": []
+  }
+]

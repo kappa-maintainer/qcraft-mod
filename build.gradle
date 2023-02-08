@@ -1,67 +1,151 @@
 buildscript {
     repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
         mavenCentral()
-        maven {
-            name = "forge"
-            url = "http://files.minecraftforge.net/maven"
-        }
-        maven {
-            name = "sonatype"
-            url = "https://oss.sonatype.org/content/repositories/snapshots/"
-        }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
     }
 }
 
-apply plugin: 'forge'
+plugins {
+    id 'wtf.gofancy.fancygradle' version '1.+'
+}
 
-ext.modversion = "1.2.2"
-ext.mcversion = "1.7.10"
-ext.forgeversion = "10.13.4.1614"
-version = mcversion + "-" + modversion
-group = "dan200.qcraft"
-archivesBaseName = "qCraft"
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+
+version = "${minecraft_version}-${mod_version}"
+group = mod_base_package
+archivesBaseName = mod_id
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 minecraft {
-    version = mcversion + "-" + forgeversion + "-" + mcversion
-    runDir = "run"
-    replace '${version}', project.version
+
+    mappings channel: mappings_channel, version: mappings_version
+
+    accessTransformer = file('src/main/resources/META-INF/qcraft_at.cfg')
+
+    runs {
+        client {
+            workingDirectory project.file('run/client')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+        }
+
+        server {
+            workingDirectory project.file('run/server')
+
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+repositories {
+    maven { url = 'https://sizableshrimp.me/maven' }
 }
 
 dependencies {
-    // you may put jars on which you depend on in ./libs
-    // or you may define them like so..
-    //compile "some.group:artifact:version:classifier"
-    //compile "some.group:artifact:version"
-      
-    // real examples
-    //compile 'com.mod-buildcraft:buildcraft:6.0.8:dev'  // adds buildcraft to the dev env
-    //compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24' // adds ejml to the dev env
-
-    // for more info...
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
-
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 }
 
-processResources
-{
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include 'mcmod.info'
-                
-        // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+fancyGradle {
+    patches {
+        resources
+        //coremods
+        //codeChickenLib
+        //asm
     }
-        
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude 'mcmod.info'
+}
+
+
+def resourceTargets = ['mcmod.info', 'pack.mcmeta']
+def intoTargets = ["$rootDir/out/production/resources/", "$rootDir/out/production/${project.name}.main/", "$rootDir/bin/main/"]
+def replaceProperties = [mod_id: mod_id, mod_name: mod_name, mod_version: mod_version,
+        mod_authors: mod_authors, mod_description: mod_description.replace('\n', '\\n'), minecraft_version: minecraft_version]
+processResources {
+    inputs.properties replaceProperties
+    replaceProperties.put 'project', project
+
+    filesMatching(resourceTargets) {
+        expand replaceProperties
+    }
+
+    intoTargets.each { target ->
+        if (file(target).exists()) {
+            copy {
+                from(sourceSets.main.resources) {
+                    include resourceTargets
+                    expand replaceProperties
+                }
+                into target
+            }
+        }
+    }
+}
+
+def modFileTokens = [VERSION: mod_version]
+def included = ["${mod_base_package.replace('.', '/')}/${mod_main_class}.java".toString()]
+
+def expandedSrc = new File(project.buildDir, 'expandedSrc')
+def srcMainJava = project.file('src/main/java').toPath()
+def includedPaths = included.collect { java.nio.file.Paths.get(it) }
+task javaReplaceTokens(type: Copy) {
+    inputs.property 'tokens', modFileTokens
+    from(srcMainJava) {
+        include included
+    }
+    into expandedSrc
+    filter(org.apache.tools.ant.filters.ReplaceTokens, beginToken: '@', endToken: '@', tokens: modFileTokens)
+}
+
+compileJava {
+    dependsOn javaReplaceTokens
+    exclude {
+        srcMainJava.relativize(it.file.toPath()) in includedPaths
+    }
+    source expandedSrc
+}
+
+jar {
+    manifest {
+        attributes([
+                'Specification-Title': mod_id,
+                'Specification-Vendor': mod_authors,
+                'Specification-Version': '1', // We are version 1 of ourselves
+                'Implementation-Title': project.name,
+                'Implementation-Version': mod_version,
+                'Implementation-Vendor': mod_authors,
+                'Implementation-Timestamp': new Date().format('yyyy-MM-dd\'T\'HH:mm:ssZ'),
+                'FMLAT': 'qcraft_at.cfg'
+        ])
+    }
+}
+
+jar.finalizedBy('reobfJar')
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
     }
 }

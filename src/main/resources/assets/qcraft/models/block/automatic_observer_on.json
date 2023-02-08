@@ -1,0 +1,24 @@
+{
+  "elements": [
+    { "from": [ 0, 0, 0 ],
+      "to": [ 16, 2, 16 ],
+      "faces": {
+        "north": { "texture": "#north", "uv": [0, 13, 16, 15] },
+        "south": { "texture": "#south", "uv": [0, 13, 16, 15] },
+        "west": { "texture": "#west", "uv": [0, 13, 16, 15] },
+        "east": { "texture": "#east", "uv": [0, 13, 16, 15] },
+        "up": {"texture":  "#top"},
+        "down": {"texture":  "#bottom"}
+      }
+    }
+  ],
+  "textures": {
+    "top": "qcraft:blocks/automatic_observer_on",
+    "bottom": "minecraft:blocks/stone_slab_top",
+    "north": "minecraft:blocks/stone_slab_side",
+    "south": "minecraft:blocks/stone_slab_side",
+    "west": "minecraft:blocks/stone_slab_side",
+    "east": "minecraft:blocks/stone_slab_side",
+    "particle": "minecraft:blocks/stone"
+  }
+}

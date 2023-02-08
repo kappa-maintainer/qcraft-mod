@@ -17,10 +17,10 @@ limitations under the License.
 
 package dan200.qcraft.client;
 
-import net.minecraft.client.particle.EntityReddustFX;
+import net.minecraft.client.particle.ParticleRedstone;
 import net.minecraft.world.World;
 
-public class EntityQuantumDustFX extends EntityReddustFX
+public class EntityQuantumDustFX extends ParticleRedstone
 {
     public EntityQuantumDustFX( World world, double par2, double par4, double par6, float par8 )
     {
