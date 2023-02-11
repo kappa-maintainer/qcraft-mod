@@ -1,0 +1,27 @@
+
+
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern":
+  [
+    "x x",
+    " a ",
+    "x x"
+  ],
+  "key":
+  {
+    "x":
+    {
+      "item": "qcraft:dust"
+    },
+    "a":
+    {
+      "item": "qcraft:eos"
+    }
+  },
+  "result":
+  {
+    "item": "qcraft:eoe",
+    "count": 1
+  }
+}

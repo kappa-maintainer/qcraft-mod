@@ -1,0 +1,28 @@
+
+
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern":
+  [
+    "gxg",
+    "   ",
+    "   "
+  ],
+  "key":
+  {
+    "x":
+    {
+      "item": "qcraft:eos"
+    },
+    "g":
+    {
+      "type": "forge:ore_dict",
+      "ore": "paneGlass"
+    }
+  },
+  "result":
+  {
+    "item": "qcraft:ao_goggles",
+    "count": 1
+  }
+}

@@ -56,18 +56,25 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
     maven { url = 'https://sizableshrimp.me/maven' }
+    maven { // TOP
+        name 'tterrag maven'
+        url "https://maven.tterrag.com/"
+    }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation fg.deobf("mcjty.theoneprobe:TheOneProbe-1.12:1.12-1.4.28-17")
 }
 
 fancyGradle {
     patches {
         resources
-        //coremods
+        coremods
         //codeChickenLib
-        //asm
+        asm
+        mergetool
+
     }
 }
 

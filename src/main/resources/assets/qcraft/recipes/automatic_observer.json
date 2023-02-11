@@ -1,0 +1,33 @@
+
+
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern":
+  [
+    "sss",
+    "sxs",
+    "srs"
+  ],
+  "key":
+  {
+    "x":
+    {
+      "item": "qcraft:eoo"
+    },
+    "r":
+    {
+      "type": "forge:ore_dict",
+      "ore": "dustRedstone"
+    },
+    "s":
+    {
+      "type": "forge:ore_dict",
+      "ore": "stone"
+    }
+  },
+  "result":
+  {
+    "item": "qcraft:goggles",
+    "count": 1
+  }
+}
