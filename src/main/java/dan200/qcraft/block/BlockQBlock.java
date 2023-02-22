@@ -9,6 +9,7 @@ import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -27,6 +28,18 @@ public class BlockQBlock extends BlockFalling implements ITileEntityProvider {
         setTranslationKey("qcraft.qblock");
     }
 
+    @Override
+    public BlockRenderLayer getRenderLayer() {
+        return BlockRenderLayer.SOLID;
+    }
+
+    @Override
+    public Material getMaterial(IBlockState state)
+    {
+
+        return ((IExtendedBlockState) state).getValue(CURRENT).getMaterial();
+
+    }
     @Override
     protected BlockStateContainer createBlockState() {
         IProperty[] listedProperties = new IProperty[0]; // no listed properties
@@ -64,4 +77,6 @@ public class BlockQBlock extends BlockFalling implements ITileEntityProvider {
     public AxisAlignedBB getBoundingBox(IBlockState p_185496_1_, IBlockAccess p_185496_2_, BlockPos p_185496_3_) {
         return FULL_BLOCK_AABB;
     }
+
+
 }

@@ -2,22 +2,33 @@ package dan200.qcraft.proxy;
 
 import javax.annotation.Nullable;
 
+import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.proxy.IProxy;
+import dan200.qcraft.render.QBlockBakedModel;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.IThreadListener;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraftforge.client.model.ModelLoader;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
+@SideOnly(Side.CLIENT)
 public class ClientProxy implements IProxy {
 
 	private final Minecraft MINECRAFT = Minecraft.getMinecraft();
@@ -52,6 +63,16 @@ public class ClientProxy implements IProxy {
 	}
 	@Override
 	public void preInit(FMLPreInitializationEvent event) {
+
+		StateMapperBase ignoreState = new StateMapperBase() {
+			@Override
+			protected ModelResourceLocation getModelResourceLocation(IBlockState iBlockState) {
+				return QBlockBakedModel.variant;
+			}
+		};
+
+		ModelLoader.setCustomStateMapper(QCraftBlocks.blockQBlock, ignoreState);
+
 	}
 
 	@Override
