@@ -13,7 +13,8 @@ import net.minecraftforge.client.ItemModelMesherForge;
 public class QBlockMeshDefinition implements ItemMeshDefinition {
     @Override
     public ModelResourceLocation getModelLocation(ItemStack stack) {
-        if(QCraft.currentType == 6) return new ModelResourceLocation("qcraft:qblock");
+        if(QCraft.currentType == 6) return new ModelResourceLocation("qcraft:qblock_fuzz");
+        if (!stack.hasTagCompound()) { return new ModelResourceLocation("qcraft:transparent"); }
         ItemStack currentStack;
         currentStack = new ItemStack(stack.getTagCompound().getCompoundTag(EnumFacing.byIndex(QCraft.currentType).getName()));
         if(currentStack.isEmpty()) { return new ModelResourceLocation("qcraft:transparent"); }

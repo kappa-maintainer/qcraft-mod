@@ -1,3 +1,6 @@
 {
-  "parent": "qcraft:block/qblock"
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "qcraft:blocks/qblock_fuzz"
+  }
 }

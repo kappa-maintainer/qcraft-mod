@@ -1,15 +1,17 @@
 package dan200.qcraft.tileentity;
 
+import dan200.qcraft.QCraft;
 import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.QCraftItems;
-import dan200.qcraft.block.BlockQBlock;
+import dan200.qcraft.block.CamouflageBlockProperty;
+import dan200.qcraft.block.ICamouflageableBlock;
 import dan200.qcraft.item.ItemQuantumGoggle;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
@@ -19,58 +21,54 @@ import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ITickable;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraft.world.World;
+import net.minecraftforge.common.property.IExtendedBlockState;
 
 import java.util.List;
 
-public class QBlockTileEntity extends TileEntity implements ITickable {
+import static net.minecraftforge.common.util.Constants.BlockFlags.*;
+
+public class QBlockTileEntity extends TileEntity implements ITickable, ICamouflageableBlock {
 
     public static int FUZZ_TIME = 9;
-    private int m_entanglementFrequency;
-    private int[] m_sideBlockTypes;
 
-    // Replicated
-    private long m_timeLastUpdated;
 
-    private boolean beingObserved;
-    private short currentSide;
-
-    private short currentlyForcedSide;
-    private boolean[] m_forceObserved;
+    private boolean prevBeingObserver = false;
+    private boolean beingObserved = true;
+    private short pendingSide = -1;
+    private short currentSide = -1;
+    
+    private IBlockState[] stateList = new IBlockState[6];
+    private ItemStack[] stackList = new ItemStack[6];
 
     // Client only
-    public int timeSinceLastChange;
+    public int timeSinceLastChange = 10;
     private boolean wearingGoggle;
     private boolean isTouchingWater;
-
-    public QBlockTileEntity() {
-        currentSide = 0;
-    }
+    
+    private static final float degree2pi = (float) (Math.PI / 180.0F);
+    
+    public QBlockTileEntity() {}
+    
     @Override
     public void update() {
+        if (stateList[0] == null) return;
         if( !world.isRemote )
         {
-            redetermineObservedSide();
+            updateObserveState();
         }
 
         // Update ticker, goggles and wetness
         timeSinceLastChange++;
         boolean goggles = world.isRemote && Minecraft.getMinecraft().player.getItemStackFromSlot(EntityEquipmentSlot.HEAD).getItem() instanceof ItemQuantumGoggle;
         boolean wet = isTouchingLiquid();
-        if( wearingGoggle != goggles || isTouchingWater != wet || timeSinceLastChange == FUZZ_TIME )
+        if( wearingGoggle != goggles || isTouchingWater != wet || timeSinceLastChange < FUZZ_TIME )
         {
             isTouchingWater = wet;
             wearingGoggle = goggles;
-            this.updateContainingBlockInfo();
         }
-    }
-    private IBlockState[] stateList = new IBlockState[6];
-    private ItemStack[] stackList = new ItemStack[6];
-    public IBlockState getCurrentState() {
-        return stateList[currentSide];
     }
 
     public void setStateList(IBlockState[] list) {
@@ -95,103 +93,47 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
         return false;
     }
 
-    private void setDisplayedSide( boolean observed, boolean forced, short side )
+    private void updateObserveState()
     {
-        beingObserved = observed;
-        currentlyForcedSide = forced ? side : -1;
-        if( currentSide != side )
-        {
-            int oldSide = currentSide;
-            IBlockState oldType = getObservedType();
-            currentSide = side;
-            int newSide = currentSide;
-            IBlockState newType = getObservedType();
-            if( newType != oldType || (oldSide < 0 != newSide < 0) )
+        calculateObserves();
+        if (prevBeingObserver != beingObserved && (timeSinceLastChange > FUZZ_TIME || beingObserved)) {
+            if( currentSide != pendingSide )
             {
-                timeSinceLastChange = 0;
-                //blockUpdate();
-                world.notifyBlockUpdate(pos, stateList[oldSide], stateList[oldSide], 2);
-            }
-        }
-    }
-
-
-    private void blockUpdate()
-    {
-        world.markAndNotifyBlock( pos, world.getChunk(pos), stateList[currentSide], stateList[currentSide], 2 );
-        world.scheduleBlockUpdate( pos, QCraftBlocks.blockQBlock, QCraftBlocks.blockQBlock.tickRate( world ), 0);
-        //world.notifyBlocksOfNeighborChange( xCoord, yCoord, zCoord, QCraft.Blocks.qBlock );
-    }
-
-    public IBlockState getObservedType()
-    {
-        if( currentSide < 0 )
-        {
-            return stateList[ 1 ];
-        }
-        return stateList[currentSide];
-    }
-
-    private void redetermineObservedSide()
-    {
-        // Tally the votes, and work out if we need to change appearance.
-        long currentTime = world.getWorldInfo().getWorldTotalTime();
-        short winner = getObservationResult( currentTime );
-        if( winner >= 6 )
-        {
-            // Force observed
-            winner -= 6;
-            setDisplayedSide( true, true, winner );
-        }
-        else if( winner >= 0 )
-        {
-            // Passively observed
-            if( (currentlyForcedSide >= 0) || !beingObserved)
-            {
-                setDisplayedSide( true, false, winner );
-            }
-        }
-        else
-        {
-            // Not observed
-            if(beingObserved)
-            {
-                if( currentlyForcedSide >= 0 )
+                int oldSide = currentSide;
+                IBlockState oldType = getCamouflageBlockState();
+                currentSide = pendingSide;
+                int newSide = currentSide;
+                IBlockState newType = getCamouflageBlockState();
+                if( newType != oldType || (oldSide < 0 != newSide < 0) )
                 {
-                    setDisplayedSide( false, false, (short) -1);
-                }
-                else
-                {
-                    setDisplayedSide( false, false, currentSide);
+                    updateBlockState();
+                    timeSinceLastChange = 0;
+
+                    IBlockState oldSub;
+                    IBlockState newSub;
+                    if (oldSide < 0) {
+                        oldSub = QCraftBlocks.blockSwirl.getDefaultState();
+                    } else {
+                        oldSub = stateList[oldSide];
+                    }
+                    if (currentSide < 0) {
+                        newSub = QCraftBlocks.blockSwirl.getDefaultState();
+                    } else {
+                        newSub = stateList[currentSide];
+                    }
+                    QCraft.LOGGER.info("SWITCHING TO {}", newSub.getBlock());
+                    world.notifyBlockUpdate(pos, oldSub, newSub, DEFAULT_AND_RERENDER);
                 }
             }
         }
-        m_timeLastUpdated = currentTime;
     }
 
-    private short getObservationResult( long currentTime )
+    @Override
+    protected void setWorldCreate(World worldIn)
     {
-        // Get local observer votes
-        /*
-        if( currentlyForcedSide >= 0 && m_forceObserved[currentlyForcedSide] )
-        {
-            return (short) (currentlyForcedSide + 6);
-        }
-        else
-        {
-            for( short i=0; i<6; ++i )
-            {
-                if( m_forceObserved[ i ] )
-                {
-                    return (short) (i + 6);
-                }
-            }
-        }*/
-
-        // Tally the votes
-        return getFirstWatching();
+        world = worldIn;
+        this.setWorld(worldIn);
     }
-
 
 
     @Override
@@ -200,25 +142,32 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
         super.readFromNBT(compound);
         for(int i = 0 ; i < 6; i++) {
             ItemStack stack = new ItemStack(compound.getCompoundTag(EnumFacing.byIndex(i).getName()));
+            stackList[i] = stack;
             if(stack.getItem() instanceof ItemBlock) {
-                stateList[i] = ((ItemBlock)stack.getItem()).getBlock().getStateFromMeta(stack.getMetadata());
+                stateList[i] = ((ItemBlock)stack.getItem()).getBlock().getStateFromMeta(compound.getInteger(EnumFacing.byIndex(i).getName() + "-meta"));
             } else {
-                stateList[i] = QCraftBlocks.blockQBlock.getDefaultState();
+                stateList[i] = Blocks.AIR.getDefaultState();
             }
         }
+        currentSide = compound.getShort("current");
+        //updateBlockState();
+        //world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), QCraftBlocks.blockQBlock.getDefaultState(), DEFAULT_AND_RERENDER);
     }
 
+    @Override
     public NBTTagCompound writeToNBT(NBTTagCompound compound)
     {
         for(int i = 0; i < 6; i++) {
             if(stateList[i] != null) {
                 compound.setTag(EnumFacing.byIndex(i).getName(), stackList[i].serializeNBT());
+                compound.setInteger(EnumFacing.byIndex(i).getName() + "-meta", stateList[i].getBlock().getMetaFromState(stateList[i]));
             }
         }
+        compound.setShort("current", currentSide);
         return super.writeToNBT(compound);
     }
 
-    private short getFirstWatching()
+    private void calculateObserves()
     {
         // Collect votes from all observers
         double centerX = (double) pos.getX() + 0.5;
@@ -227,6 +176,14 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
 
         // For each player:
         List<EntityPlayer> players = world.playerEntities;
+        if (players.isEmpty()) {
+            setIsObserving(false);
+            pendingSide = -1;
+            return;
+        }
+        
+        boolean hasNearByPlayer = false;
+        
         for (EntityPlayer entityPlayer : players) {
             // Determine whether they're looking at the block:
             if (entityPlayer != null) {
@@ -246,6 +203,9 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
                 // Check distance:
                 double distance = Math.sqrt(x * x + y * y + z * z);
                 if (distance < 96.0) {
+                    if (!hasNearByPlayer) {
+                        hasNearByPlayer = true;
+                    }
                     // Get direction info:
                     double dx = x / distance;
                     double dy = y / distance;
@@ -254,10 +214,10 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
                     // Get facing info:
                     float pitch = entityPlayer.rotationPitch;
                     float yaw = entityPlayer.rotationYaw;
-                    float f3 = -MathHelper.cos(yaw * 0.017453292f);
-                    float f4 = MathHelper.sin(yaw * 0.017453292f);
-                    float f5 = MathHelper.cos(pitch * 0.017453292f);
-                    float f6 = -MathHelper.sin(pitch * 0.017453292f);
+                    float f3 = -MathHelper.cos(yaw * degree2pi);
+                    float f4 = MathHelper.sin(yaw * degree2pi);
+                    float f5 = MathHelper.cos(pitch * degree2pi);
+                    float f6 = -MathHelper.sin(pitch * degree2pi);
                     float f7 = f4 * f5;
                     float f8 = f3 * f5;
 
@@ -266,6 +226,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
                     if (dot < -0.4) {
 
                         // Block is being observed!
+                        setIsObserving(false);
 
                         // Determine the major axis:
                         short majoraxis = -1;
@@ -293,65 +254,100 @@ public class QBlockTileEntity extends TileEntity implements ITickable {
                         }
                         if (dx >= majorweight) {
                             majoraxis = 5;
-                            majorweight = dx;
                         }
 
                         // Vote for this axis
                         if (majoraxis >= 0) {
-                            return majoraxis;
+                            pendingSide = majoraxis;
                         }
+                    } else {
+                        setIsObserving(true);
                     }
                 }
             }
         }
-        return -1;
-
+        if (!hasNearByPlayer) {
+            pendingSide = -1;
+            setIsObserving(false);
+        }
     }
 
     @Override
     public SPacketUpdateTileEntity getUpdatePacket(){
         NBTTagCompound nbtTag = new NBTTagCompound();
         //Write your data into the nbtTag
-        nbtTag.setShort("new", currentSide);
+        nbtTag.setShort("current", currentSide);
         return new SPacketUpdateTileEntity(getPos(), 1, nbtTag);
     }
 
     @Override
     public void onDataPacket(NetworkManager net, SPacketUpdateTileEntity pkt){
+        
         NBTTagCompound tag = pkt.getNbtCompound();
         //int old = currentSide;
-        this.currentSide = tag.getShort("new");
-
+        this.currentSide = tag.getShort("current");
+        updateBlockState();
         //Handle your Data
     }
 
-    public class QTEUpdateMessage implements IMessage {
-        // A default constructor is always required
-        public QTEUpdateMessage(){}
-
-        private int toSend;
-        public QTEUpdateMessage(int newSide) {
-            this.toSend = newSide;
-        }
-
-        @Override public void toBytes(ByteBuf buf) {
-            // Writes the int into the buf
-            buf.writeInt(toSend);
-        }
-
-        @Override public void fromBytes(ByteBuf buf) {
-            // Reads the int back from the buf. Note that if you have multiple values, you must read in the same order you wrote.
-            toSend = buf.readInt();
-        }
+    @Override
+    public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate)
+    {
+        boolean should = oldState.getBlock() != newSate.getBlock();
+        return should;
     }
 
-    public class MyMessageHandler implements IMessageHandler<QTEUpdateMessage, IMessage> {
-        // Do note that the default constructor is required, but implicitly defined in this case
-
-        @Override public IMessage onMessage(QTEUpdateMessage message, MessageContext ctx) {
-
-            // No response packet
-            return null;
+    @Override
+    public IBlockState getCamouflageBlockState() {
+        if( currentSide < 0 || stateList[0] == null)
+        {
+            return QCraftBlocks.blockSwirl.getDefaultState();
         }
+        return stateList[currentSide];
+    }
+    
+    private void updateBlockState() {
+        IBlockState state = world.getBlockState(getPos());
+        IBlockState subState;
+        if (currentSide < 0) {
+            subState = QCraftBlocks.blockSwirl.getDefaultState();
+        } else {
+            subState = stateList[currentSide];
+        }
+        world.setBlockState(pos, ((IExtendedBlockState) state).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
+        markDirty();
+    }
+    
+    private void setIsObserving(boolean observed) {
+        prevBeingObserver = beingObserved;
+        beingObserved = observed;
+    }
+
+    @Override
+    public NBTTagCompound getUpdateTag() {
+        NBTTagCompound compound = new NBTTagCompound();
+        for(int i = 0; i < 6; i++) {
+            if(stateList[i] != null) {
+                compound.setTag(EnumFacing.byIndex(i).getName(), stackList[i].serializeNBT());
+                compound.setInteger(EnumFacing.byIndex(i).getName() + "-meta", stateList[i].getBlock().getMetaFromState(stateList[i]));
+            }
+        }
+        compound.setShort("current", currentSide);
+        return compound;
+    }
+
+    @Override
+    public void handleUpdateTag(NBTTagCompound compound) {
+        for(int i = 0 ; i < 6; i++) {
+            ItemStack stack = new ItemStack(compound.getCompoundTag(EnumFacing.byIndex(i).getName()));
+            stackList[i] = stack;
+            if(stack.getItem() instanceof ItemBlock) {
+                stateList[i] = ((ItemBlock)stack.getItem()).getBlock().getStateFromMeta(compound.getInteger(EnumFacing.byIndex(i).getName() + "-meta"));
+            } else {
+                stateList[i] = Blocks.AIR.getDefaultState();
+            }
+        }
+        currentSide = compound.getShort("current");
+        updateBlockState();
     }
 }

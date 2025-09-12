@@ -19,7 +19,7 @@ public class QBlockRecipe implements IRecipe {
     private static ResourceLocation name;
     @Override
     public boolean matches(InventoryCrafting inv, World worldIn) {
-        for(int i=0;i<inv.getSizeInventory();i++) {
+        for(int i = 0; i < inv.getSizeInventory(); i++) {
             if(inv.getStackInSlot(i).getItem() == QCraftItems.itemEoO || inv.getStackInSlot(i).getItem() == QCraftItems.itemEoS) {
                 int north = i - inv.getWidth();
                 int south = i + inv.getWidth();

@@ -1,16 +1,12 @@
-[
-  {
-    "modid": "qcraft",
-    "name": "qCraft",
-    "description": "Minecraft Rocks. Quantum Rules.",
-    "version": "1.3.0",
-    "mcversion": "1.12.2",
-    "url": "",
-    "updateUrl": "",
-    "authorList": ["Daniel Ratcliffe", "TeacherGaming LLC", "Google Creative Lab", "kappa_maintainer"],
-    "credits": "Created by Daniel Ratcliffe for TeacherGaming LLC",
-    "logoFile" : "assets/qcraft/textures/gui/logo.png",
-    "screenshots": [],
-    "dependencies": []
-  }
-]
+[{
+	"modid": "${mod_id}",
+	"name": "${mod_name}",
+	"version": "${mod_version}",
+	"mcversion": "1.12.2",
+	"description": "${mod_description}",
+	"authorList": ["${mod_authors}"],
+	"credits": "${mod_credits}",
+	"url": "${mod_url}",
+	"updateJSON": "${mod_update_json}",
+	"logoFile": "${mod_logo_path}"
+}]

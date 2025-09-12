@@ -1,25 +1,24 @@
 package dan200.qcraft.block;
 
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
 import net.minecraftforge.common.property.IUnlistedProperty;
 
-public class UnlistedPropertyQBlock implements IUnlistedProperty<IBlockState> {
+public class CamouflageBlockProperty implements IUnlistedProperty<IBlockState> {
+    
+    public static final CamouflageBlockProperty CURRENT_CAMOU = new CamouflageBlockProperty(); 
 
-    private final String name = "current";
-
-    public UnlistedPropertyQBlock() {
+    public CamouflageBlockProperty() {
 
     }
 
     @Override
     public String getName() {
-        return name;
+        return "camouflage-current";
     }
 
     @Override
     public boolean isValid(IBlockState state) {
-        return state.getBlock() != Blocks.AIR;
+        return state.getBlock() != null;
     }
 
 

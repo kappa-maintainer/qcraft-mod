@@ -1,6 +1,8 @@
 package dan200.qcraft.render;
 
-import dan200.qcraft.block.BlockQBlock;
+import dan200.qcraft.QCraft;
+import dan200.qcraft.QCraftBlocks;
+import dan200.qcraft.block.CamouflageBlockProperty;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockModelShapes;
@@ -10,6 +12,8 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.property.IExtendedBlockState;
+import org.apache.commons.lang3.concurrent.ConcurrentException;
+import org.apache.commons.lang3.concurrent.LazyInitializer;
 import org.apache.commons.lang3.tuple.Pair;
 
 import javax.annotation.Nullable;
@@ -17,6 +21,13 @@ import javax.vecmath.Matrix4f;
 import java.util.List;
 
 public class QBlockBakedModel implements IBakedModel {
+    private static final LazyInitializer<BlockModelShapes> shapes = new LazyInitializer<>() {
+        @Override
+        protected BlockModelShapes initialize() {
+            return  Minecraft.getMinecraft().getBlockRendererDispatcher().getBlockModelShapes();
+        }
+    };
+    
     public QBlockBakedModel(IBakedModel model) {
         currentModel = model;
     }
@@ -27,24 +38,25 @@ public class QBlockBakedModel implements IBakedModel {
         return currentModel.getQuads(iBlockState, enumFacing, l);
     }
 
-    public static final ModelResourceLocation blockstate = new ModelResourceLocation("qcraft:qblock");
-    public static final ModelResourceLocation variant = new ModelResourceLocation("qcraft:qblock", "normal");
+    public static final ModelResourceLocation blockstate = new ModelResourceLocation("qcraft:qblock#normal");
+    public static final ModelResourceLocation variant = new ModelResourceLocation(QCraftBlocks.blockQBlock.getRegistryName(), null);
 
     private IBakedModel currentModel;
 
     private IBakedModel handleBlockState(@Nullable IBlockState iBlockState) {
         IBakedModel emptyModel = null;
-        IBlockState NON_BLOCK = Blocks.AIR.getDefaultState();
 
-        if(iBlockState instanceof IExtendedBlockState) {
-            IExtendedBlockState iExtendedBlockState = (IExtendedBlockState) iBlockState;
-            IBlockState currentState = iExtendedBlockState.getValue(BlockQBlock.CURRENT);
+        if(iBlockState instanceof IExtendedBlockState iExtendedBlockState) {
+            IBlockState currentState = iExtendedBlockState.getValue(CamouflageBlockProperty.CURRENT_CAMOU);
 
-            if(currentState != null) {
-                Minecraft mc = Minecraft.getMinecraft();
-                BlockRendererDispatcher blockRendererDispatcher = mc.getBlockRendererDispatcher();
-                BlockModelShapes blockModelShapes = blockRendererDispatcher.getBlockModelShapes();
-                emptyModel = blockModelShapes.getModelForState(currentState);
+            try {
+                if(currentState != null) {
+                    emptyModel = shapes.get().getModelForState(currentState);
+                } else {
+                    QCraft.LOGGER.info("Can't get sub state, block {}", iBlockState);
+                    emptyModel = shapes.get().getModelForState(QCraftBlocks.blockSwirl.getDefaultState());
+                }
+            } catch (ConcurrentException ignored) {
             }
         }
         return emptyModel;
@@ -76,7 +88,9 @@ public class QBlockBakedModel implements IBakedModel {
     }
 
     @Override
-    public ItemCameraTransforms getItemCameraTransforms() { return currentModel.getItemCameraTransforms(); }
+    public ItemCameraTransforms getItemCameraTransforms() { 
+        return currentModel.getItemCameraTransforms(); 
+    }
 
     @Override
     public Pair<? extends IBakedModel, Matrix4f> handlePerspective(ItemCameraTransforms.TransformType cameraTransformType) {
