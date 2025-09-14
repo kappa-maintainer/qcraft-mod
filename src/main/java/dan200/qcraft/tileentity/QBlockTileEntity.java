@@ -7,9 +7,11 @@ import dan200.qcraft.block.CamouflageBlockProperty;
 import dan200.qcraft.block.ICamouflageableBlock;
 import dan200.qcraft.item.ItemQuantumGoggle;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -106,7 +108,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                 IBlockState newType = getCamouflageBlockState();
                 if( newType != oldType || (oldSide < 0 != newSide < 0) )
                 {
-                    updateBlockState();
+                    updateExtendedBlockState();
                     timeSinceLastChange = 0;
 
                     IBlockState oldSub;
@@ -121,7 +123,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                     } else {
                         newSub = stateList[currentSide];
                     }
-                    QCraft.LOGGER.info("SWITCHING TO {}", newSub.getBlock());
                     world.notifyBlockUpdate(pos, oldSub, newSub, DEFAULT_AND_RERENDER);
                 }
             }
@@ -150,8 +151,8 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             }
         }
         currentSide = compound.getShort("current");
-        //updateBlockState();
-        //world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), QCraftBlocks.blockQBlock.getDefaultState(), DEFAULT_AND_RERENDER);
+        updateExtendedBlockState();
+        world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), QCraftBlocks.blockQBlock.getDefaultState(), DEFAULT_AND_RERENDER);
     }
 
     @Override
@@ -286,15 +287,15 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         NBTTagCompound tag = pkt.getNbtCompound();
         //int old = currentSide;
         this.currentSide = tag.getShort("current");
-        updateBlockState();
+        updateExtendedBlockState();
         //Handle your Data
     }
 
     @Override
     public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate)
     {
-        boolean should = oldState.getBlock() != newSate.getBlock();
-        return should;
+        return newSate.getBlock() instanceof BlockAir;
+        //return oldState.getBlock() != newSate.getBlock();
     }
 
     @Override
@@ -306,15 +307,17 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         return stateList[currentSide];
     }
     
-    private void updateBlockState() {
-        IBlockState state = world.getBlockState(getPos());
+    private void updateExtendedBlockState() {
         IBlockState subState;
         if (currentSide < 0) {
             subState = QCraftBlocks.blockSwirl.getDefaultState();
         } else {
             subState = stateList[currentSide];
         }
-        world.setBlockState(pos, ((IExtendedBlockState) state).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
+        
+        //world.setBlockState(pos, ((IExtendedBlockState) QCraftBlocks.blockQBlock.getExtendedState(QCraftBlocks.blockQBlock.getDefaultState(), world, pos)).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
+        world.setBlockState(pos, ((IExtendedBlockState) world.getBlockState(pos)).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
+        world.markBlockRangeForRenderUpdate(pos, pos);
         markDirty();
     }
     
@@ -348,6 +351,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             }
         }
         currentSide = compound.getShort("current");
-        updateBlockState();
+        updateExtendedBlockState();
     }
 }

@@ -9,6 +9,7 @@ import net.minecraft.block.properties.IProperty;
 import net.minecraft.block.state.BlockFaceShape;
 import net.minecraft.block.state.BlockStateContainer;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
@@ -23,7 +24,6 @@ import net.minecraftforge.common.property.IExtendedBlockState;
 import net.minecraftforge.common.property.IUnlistedProperty;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
 import java.util.Random;
 
 public class BlockQBlock extends BlockFalling {
@@ -41,7 +41,7 @@ public class BlockQBlock extends BlockFalling {
     @Override
     public EnumBlockRenderType getRenderType(IBlockState state)
     {
-        return EnumBlockRenderType.MODEL;
+        return QCraft.getQblockRenderType();
     }
 
     @Override
@@ -63,13 +63,12 @@ public class BlockQBlock extends BlockFalling {
     
     @Override
     protected BlockStateContainer createBlockState() {
-        IProperty<?>[] listedProperties = new IProperty[0]; // no listed properties
-        IUnlistedProperty<?>[] unlistedProperties = new IUnlistedProperty[] { CamouflageBlockProperty.CURRENT_CAMOU};
-        return new ExtendedBlockState(this, listedProperties, unlistedProperties);
+        return new BlockStateContainer.Builder(this).add(CamouflageBlockProperty.CURRENT_CAMOU).build();
     }
 
     @Override
     public IBlockState getExtendedState(IBlockState state, IBlockAccess world, BlockPos pos) {
+        if (!state.getBlock().equals(QCraftBlocks.blockQBlock)) return state;
         IExtendedBlockState extendedBlockState = (IExtendedBlockState) state;
 
         TileEntity te = world.getTileEntity(pos);
@@ -117,7 +116,9 @@ public class BlockQBlock extends BlockFalling {
     @Override
     public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
         //return BlockRenderLayer.CUTOUT == layer;
-        return getCurrentSubState(state).getBlock().getRenderLayer() == layer;
+        boolean can = getCurrentSubState(state).getBlock().getRenderLayer() == layer;
+        QCraft.LOGGER.info("{} {}", state, can);
+        return can;
     }
 
     @Override
@@ -156,8 +157,55 @@ public class BlockQBlock extends BlockFalling {
     {
         return getCurrentSubState(state).getLightValue(world, pos);
     }
+
+    @Override
+    public boolean isBlockNormalCube(IBlockState state)
+    {
+        return getCurrentSubState(state).isBlockNormalCube();
+    }
+
+    @Override
+    public boolean isNormalCube(IBlockState state)
+    {
+        return getCurrentSubState(state).isNormalCube();
+    }
+
+    @Override
+    public boolean causesSuffocation(IBlockState state)
+    {
+        return getCurrentSubState(state).causesSuffocation();
+    }
+
+    @Override
+    public float getAmbientOcclusionLightValue(IBlockState state)
+    {
+        return getCurrentSubState(state).getAmbientOcclusionLightValue();
+    }
+
+    @Override
+    public int getWeakPower(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing)
+    {
+        return getCurrentSubState(state).getWeakPower(world, pos, facing);
+    }
+
+    @Override
+    public boolean canProvidePower(IBlockState state)
+    {
+        return getCurrentSubState(state).canProvidePower();
+    }
+
+    public void onEntityCollision(World world, BlockPos pos, IBlockState state, Entity entity)
+    {
+        getCurrentSubState(state).getBlock().onEntityCollision(world, pos, getCurrentSubState(state), entity);
+    }
+
+    @Override
+    public int getStrongPower(IBlockState state, IBlockAccess world, BlockPos pos, EnumFacing facing)
+    {
+        return getCurrentSubState(state).getStrongPower(world, pos, facing);
+    }
     
-    private IBlockState getCurrentSubState(IBlockState state) {
+    public static IBlockState getCurrentSubState(IBlockState state) {
         IBlockState property = ((IExtendedBlockState) state).getValue(CamouflageBlockProperty.CURRENT_CAMOU);
         if (property == null) {
             return QCraftBlocks.blockSwirl.getDefaultState();

@@ -32,7 +32,7 @@ public class QBlockCCBlockRenderer implements ICCBlockRenderer {
             IBlockState camoState = iCamouflageableBlock.getCamouflageBlockState();
             getDispatcher().renderBlock(camoState, blockPos, iBlockAccess, bufferBuilder);
         }
-        return true;
+        return false;
     }
     
     private BlockRendererDispatcher getDispatcher() {

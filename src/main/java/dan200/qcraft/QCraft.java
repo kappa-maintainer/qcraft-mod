@@ -160,7 +160,7 @@ public class QCraft {
 
 
     }
-    
+    /*
     @SubscribeEvent
     @SideOnly(Side.CLIENT)
     public static void onModelRegistry(ModelRegistryEvent event) {
@@ -183,7 +183,7 @@ public class QCraft {
             event.getModelRegistry().putObject(QBlockBakedModel.variant, model);
         }
     }
-
+*/
     @SubscribeEvent
     public void handleTick( TickEvent.ClientTickEvent clientTickEvent )
     {

@@ -63,11 +63,8 @@ public class ClientProxy implements IProxy {
 	}
 	@Override
 	public void preInit(FMLPreInitializationEvent event) {
-
-
         
-        
-        //BlockRenderingRegistry.registerRenderer(QCraft.getQblockRenderType(), new QBlockCCBlockRenderer());
+        BlockRenderingRegistry.registerRenderer(QCraft.getQblockRenderType(), new QBlockCCBlockRenderer());
 
 	}
 
