@@ -1,9 +1,9 @@
 package dan200.qcraft.tileentity;
 
-import dan200.qcraft.QCraft;
 import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.QCraftItems;
 import dan200.qcraft.block.CamouflageBlockProperty;
+import dan200.qcraft.block.CamouflageState;
 import dan200.qcraft.block.ICamouflageableBlock;
 import dan200.qcraft.item.ItemQuantumGoggle;
 import net.minecraft.block.Block;
@@ -11,7 +11,6 @@ import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -151,8 +150,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             }
         }
         currentSide = compound.getShort("current");
-        updateExtendedBlockState();
-        world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), QCraftBlocks.blockQBlock.getDefaultState(), DEFAULT_AND_RERENDER);
     }
 
     @Override
@@ -166,6 +163,13 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         }
         compound.setShort("current", currentSide);
         return super.writeToNBT(compound);
+    }
+    
+    @Override
+    public void onLoad()
+    {
+        updateExtendedBlockState();
+        world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), getCamouflageBlockState(), DEFAULT_AND_RERENDER);
     }
 
     private void calculateObserves()
@@ -294,8 +298,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     @Override
     public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate)
     {
-        return newSate.getBlock() instanceof BlockAir;
-        //return oldState.getBlock() != newSate.getBlock();
+        return oldState.getBlock() != newSate.getBlock();
     }
 
     @Override
@@ -316,7 +319,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         }
         
         //world.setBlockState(pos, ((IExtendedBlockState) QCraftBlocks.blockQBlock.getExtendedState(QCraftBlocks.blockQBlock.getDefaultState(), world, pos)).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
-        world.setBlockState(pos, ((IExtendedBlockState) world.getBlockState(pos)).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
+        world.setBlockState(pos, new CamouflageState(QCraftBlocks.blockQBlock, subState));
         world.markBlockRangeForRenderUpdate(pos, pos);
         markDirty();
     }

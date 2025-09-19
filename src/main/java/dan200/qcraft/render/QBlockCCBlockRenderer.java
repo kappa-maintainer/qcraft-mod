@@ -2,7 +2,7 @@ package dan200.qcraft.render;
 
 import codechicken.lib.render.block.ICCBlockRenderer;
 import dan200.qcraft.QCraftBlocks;
-import dan200.qcraft.block.ICamouflageableBlock;
+import dan200.qcraft.block.CamouflageState;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.BlockRendererDispatcher;
@@ -16,23 +16,20 @@ public class QBlockCCBlockRenderer implements ICCBlockRenderer {
     private static BlockRendererDispatcher dispatcher;
     @Override
     public void handleRenderBlockDamage(IBlockAccess iBlockAccess, BlockPos blockPos, IBlockState iBlockState, TextureAtlasSprite textureAtlasSprite, BufferBuilder bufferBuilder) {
-        if (!(iBlockAccess.getTileEntity(blockPos) instanceof ICamouflageableBlock iCamouflageableBlock)) {
-            getDispatcher().renderBlockDamage(iBlockState, blockPos, textureAtlasSprite, iBlockAccess);
+        if (iBlockState instanceof CamouflageState camouflageState) {
+            getDispatcher().renderBlockDamage(camouflageState, blockPos, textureAtlasSprite, iBlockAccess);
         } else {
-            IBlockState camoState = iCamouflageableBlock.getCamouflageBlockState();
-            getDispatcher().renderBlockDamage(camoState, blockPos, textureAtlasSprite, iBlockAccess);
+            getDispatcher().renderBlockDamage(QCraftBlocks.blockSwirl.getDefaultState(), blockPos, textureAtlasSprite, iBlockAccess);
         }
     }
 
     @Override
     public boolean renderBlock(IBlockAccess iBlockAccess, BlockPos blockPos, IBlockState iBlockState, BufferBuilder bufferBuilder) {
-        if (!(iBlockAccess.getTileEntity(blockPos) instanceof ICamouflageableBlock iCamouflageableBlock)) {
-            getDispatcher().renderBlock(QCraftBlocks.blockSwirl.getDefaultState(), blockPos, iBlockAccess, bufferBuilder);
+        if (iBlockState instanceof CamouflageState camouflageState) {
+            return getDispatcher().renderBlock(camouflageState, blockPos, iBlockAccess, bufferBuilder);
         } else {
-            IBlockState camoState = iCamouflageableBlock.getCamouflageBlockState();
-            getDispatcher().renderBlock(camoState, blockPos, iBlockAccess, bufferBuilder);
+            return getDispatcher().renderBlock(QCraftBlocks.blockSwirl.getDefaultState(), blockPos, iBlockAccess, bufferBuilder);
         }
-        return false;
     }
     
     private BlockRendererDispatcher getDispatcher() {
@@ -44,7 +41,11 @@ public class QBlockCCBlockRenderer implements ICCBlockRenderer {
 
     @Override
     public void renderBrightness(IBlockState iBlockState, float v) {
-
+        if (iBlockState instanceof CamouflageState camouflageState) {
+            getDispatcher().renderBlockBrightness(camouflageState, v);
+        } else {
+            getDispatcher().renderBlockBrightness(QCraftBlocks.blockSwirl.getDefaultState(), v);
+        }
     }
 
     @Override

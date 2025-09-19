@@ -5,6 +5,7 @@ import dan200.qcraft.block.BlockObserver;
 import dan200.qcraft.block.BlockQBlock;
 import dan200.qcraft.block.BlockQuantumOre;
 import dan200.qcraft.block.BlockSwirl;
+import net.minecraft.block.Block;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
 public class QCraftBlocks {
@@ -14,6 +15,7 @@ public class QCraftBlocks {
     public static BlockQBlock blockQBlock;
     public static BlockFuzz blockFuzz;
     public static BlockSwirl blockSwirl;
+    public static Block blockTransparent;
 
 
 }

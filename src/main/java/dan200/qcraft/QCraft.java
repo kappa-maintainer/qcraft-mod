@@ -12,22 +12,17 @@ import dan200.qcraft.crafting.QBlockRecipe;
 import dan200.qcraft.gen.OreGenerator;
 import dan200.qcraft.item.*;
 import dan200.qcraft.proxy.IProxy;
-import dan200.qcraft.render.QBlockBakedModel;
 import dan200.qcraft.render.QBlockMeshDefinition;
 import dan200.qcraft.tileentity.QBlockTileEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.IBakedModel;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.block.statemap.StateMapperBase;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.client.event.ModelBakeEvent;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.MinecraftForge;
@@ -96,6 +91,7 @@ public class QCraft {
         QCraftBlocks.blockQuantumOreOn = new BlockQuantumOre(true);
         QCraftBlocks.blockObserver = new BlockObserver(false);
         QCraftBlocks.blockQBlock = new BlockQBlock();
+        QCraftBlocks.blockTransparent = new Block(Material.AIR).setRegistryName("qcraft:transparent").setTranslationKey("qcraft.transparent");
 
         IForgeRegistry<Block> registry = event.getRegistry();
         registry.register(QCraftBlocks.blockFuzz);
@@ -104,7 +100,7 @@ public class QCraft {
         registry.register(QCraftBlocks.blockQuantumOreOn);
         registry.register(QCraftBlocks.blockObserver);
         registry.register(QCraftBlocks.blockQBlock);
-        registry.register(new Block(Material.AIR).setRegistryName("qcraft:transparent").setTranslationKey("qcraft.transparent"));
+        registry.register(QCraftBlocks.blockTransparent);
 
         GameRegistry.registerTileEntity(QBlockTileEntity.class, new ResourceLocation("qcraft:qbte"));
     }
@@ -154,36 +150,8 @@ public class QCraft {
                 new ModelResourceLocation(QCraftItems.itemAntiObserveGoggle.getRegistryName(), "inventory"));
 
         ModelLoader.setCustomMeshDefinition(QCraftItems.itemBlockQBlock, new  QBlockMeshDefinition());
-
-        //ClientRegistry.bindTileEntitySpecialRenderer(QBlockTileEntity.class, new QBlockTERender());
-
-
-
     }
-    /*
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public static void onModelRegistry(ModelRegistryEvent event) {
-        StateMapperBase mapperBase = new StateMapperBase() {
-            @Override
-            protected ModelResourceLocation getModelResourceLocation(IBlockState iBlockState) {
-                return QBlockBakedModel.variant;
-            }
-        };
-        ModelLoader.setCustomStateMapper(QCraftBlocks.blockQBlock, mapperBase);
-    }
-
-    @SubscribeEvent
-    @SideOnly(Side.CLIENT)
-    public static void onModelBake(ModelBakeEvent event) {
-        IBakedModel iBakedModel = event.getModelRegistry().getObject(QBlockBakedModel.variant);
-        LOGGER.info("STATE {}", iBakedModel);
-        if(iBakedModel != null) {
-            QBlockBakedModel model = new QBlockBakedModel(iBakedModel);
-            event.getModelRegistry().putObject(QBlockBakedModel.variant, model);
-        }
-    }
-*/
+    
     @SubscribeEvent
     public void handleTick( TickEvent.ClientTickEvent clientTickEvent )
     {
