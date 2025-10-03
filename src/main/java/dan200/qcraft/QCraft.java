@@ -1,8 +1,6 @@
 package dan200.qcraft;
 
 
-import codechicken.lib.CodeChickenLib;
-import codechicken.lib.render.block.BlockRenderingRegistry;
 import dan200.qcraft.block.BlockFuzz;
 import dan200.qcraft.block.BlockObserver;
 import dan200.qcraft.block.BlockQBlock;
@@ -21,7 +19,6 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.event.ModelRegistryEvent;
 import net.minecraftforge.client.model.ModelLoader;
@@ -47,8 +44,7 @@ import org.apache.logging.log4j.Logger;
         modid = Reference.MOD_ID,
         name = Reference.MOD_NAME,
         useMetadata = true,
-        version = Reference.VERSION,
-        dependencies = CodeChickenLib.MOD_VERSION_DEP
+        version = Reference.VERSION
 )
 @Mod.EventBusSubscriber
 public class QCraft {
@@ -62,7 +58,6 @@ public class QCraft {
 	@Instance(Reference.MOD_ID)
 	public static QCraft _instance;
 
-    private static EnumBlockRenderType qblock;
     public QCraft() {}
 
     public static final CreativeTabs QCRAT_TAB = new CreativeTabs("qcraft") {
@@ -171,7 +166,6 @@ public class QCraft {
     @EventHandler
     public static void preInit(FMLPreInitializationEvent event) {
         LOGGER = event.getModLog();
-        qblock = BlockRenderingRegistry.createRenderType("qblock");
         proxy.preInit(event);
         MinecraftForge.EVENT_BUS.register(QCraft._instance);
     }
@@ -195,9 +189,5 @@ public class QCraft {
 
     @EventHandler
     public void onServerStopping(FMLServerStoppingEvent event) {
-    }
-
-    public static EnumBlockRenderType getQblockRenderType() {
-        return qblock;
     }
 }

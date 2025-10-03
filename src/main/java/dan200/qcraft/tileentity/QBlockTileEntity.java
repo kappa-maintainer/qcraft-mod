@@ -2,21 +2,18 @@ package dan200.qcraft.tileentity;
 
 import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.QCraftItems;
-import dan200.qcraft.block.CamouflageBlockProperty;
 import dan200.qcraft.block.CamouflageState;
 import dan200.qcraft.block.ICamouflageableBlock;
 import dan200.qcraft.item.ItemQuantumGoggle;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockAir;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
 import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTUtil;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.play.server.SPacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
@@ -25,7 +22,6 @@ import net.minecraft.util.ITickable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import net.minecraftforge.common.property.IExtendedBlockState;
 
 import java.util.List;
 
@@ -35,6 +31,8 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
 
     public static int FUZZ_TIME = 9;
 
+    private static final IBlockState swirlBlockState = QCraftBlocks.blockSwirl.getDefaultState();
+    private static final IBlockState fuzzBlockState = QCraftBlocks.blockFuzz.getDefaultState();
 
     private boolean prevBeingObserver = false;
     private boolean beingObserved = true;
@@ -42,16 +40,22 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private short currentSide = -1;
     
     private IBlockState[] stateList = new IBlockState[6];
-    private ItemStack[] stackList = new ItemStack[6];
 
     // Client only
     public int timeSinceLastChange = 10;
     private boolean wearingGoggle;
-    private boolean isTouchingWater;
     
     private static final float degree2pi = (float) (Math.PI / 180.0F);
     
-    public QBlockTileEntity() {}
+    public QBlockTileEntity() {
+        blockType = QCraftBlocks.blockQBlock;
+    }
+
+    @Override
+    public Block getBlockType()
+    {
+        return QCraftBlocks.blockQBlock;
+    }
     
     @Override
     public void update() {
@@ -63,36 +67,26 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
 
         // Update ticker, goggles and wetness
         timeSinceLastChange++;
-        boolean goggles = world.isRemote && Minecraft.getMinecraft().player.getItemStackFromSlot(EntityEquipmentSlot.HEAD).getItem() instanceof ItemQuantumGoggle;
-        boolean wet = isTouchingLiquid();
-        if( wearingGoggle != goggles || isTouchingWater != wet || timeSinceLastChange < FUZZ_TIME )
-        {
-            isTouchingWater = wet;
-            wearingGoggle = goggles;
+        if (world.isRemote) {
+            boolean goggles = Minecraft.getMinecraft().player.getItemStackFromSlot(EntityEquipmentSlot.HEAD).getItem().equals(QCraftItems.itemQuantumGoggle);
+            if (wearingGoggle != goggles) {
+                wearingGoggle = goggles;
+                IBlockState state = world.getBlockState(pos);
+                if (state instanceof CamouflageState) {
+                    if (wearingGoggle) {
+                        world.setBlockState(pos, new CamouflageState(getBlockType(), fuzzBlockState), RERENDER_MAIN_THREAD | NO_OBSERVERS);
+                    } else {
+                        world.setBlockState(pos, new CamouflageState(getBlockType(), getCamouflageBlockState()), RERENDER_MAIN_THREAD | NO_OBSERVERS);
+                    }
+                }
+            }
         }
     }
 
     public void setStateList(IBlockState[] list) {
         this.stateList = list;
     }
-
-    public void setStackList(ItemStack[] list) {
-        this.stackList = list;
-    }
-
-    private boolean isTouchingLiquid()
-    {
-        for( int i = 1; i < 6; ++i ) // ignore down
-        {
-
-            Block block = world.getBlockState(this.getPos().offset(EnumFacing.byIndex(i))).getBlock();
-            if(block instanceof BlockLiquid)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+    
 
     private void updateObserveState()
     {
@@ -113,12 +107,12 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                     IBlockState oldSub;
                     IBlockState newSub;
                     if (oldSide < 0) {
-                        oldSub = QCraftBlocks.blockSwirl.getDefaultState();
+                        oldSub = swirlBlockState;
                     } else {
                         oldSub = stateList[oldSide];
                     }
                     if (currentSide < 0) {
-                        newSub = QCraftBlocks.blockSwirl.getDefaultState();
+                        newSub = swirlBlockState;
                     } else {
                         newSub = stateList[currentSide];
                     }
@@ -135,43 +129,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         this.setWorld(worldIn);
     }
 
-
-    @Override
-    public void readFromNBT(NBTTagCompound compound)
-    {
-        super.readFromNBT(compound);
-        for(int i = 0 ; i < 6; i++) {
-            ItemStack stack = new ItemStack(compound.getCompoundTag(EnumFacing.byIndex(i).getName()));
-            stackList[i] = stack;
-            if(stack.getItem() instanceof ItemBlock) {
-                stateList[i] = ((ItemBlock)stack.getItem()).getBlock().getStateFromMeta(compound.getInteger(EnumFacing.byIndex(i).getName() + "-meta"));
-            } else {
-                stateList[i] = Blocks.AIR.getDefaultState();
-            }
-        }
-        currentSide = compound.getShort("current");
-    }
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound compound)
-    {
-        for(int i = 0; i < 6; i++) {
-            if(stateList[i] != null) {
-                compound.setTag(EnumFacing.byIndex(i).getName(), stackList[i].serializeNBT());
-                compound.setInteger(EnumFacing.byIndex(i).getName() + "-meta", stateList[i].getBlock().getMetaFromState(stateList[i]));
-            }
-        }
-        compound.setShort("current", currentSide);
-        return super.writeToNBT(compound);
-    }
-    
-    @Override
-    public void onLoad()
-    {
-        updateExtendedBlockState();
-        world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), getCamouflageBlockState(), DEFAULT_AND_RERENDER);
-    }
-
     private void calculateObserves()
     {
         // Collect votes from all observers
@@ -183,7 +140,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         List<EntityPlayer> players = world.playerEntities;
         if (players.isEmpty()) {
             setIsObserving(false);
-            pendingSide = -1;
             return;
         }
         
@@ -272,9 +228,40 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             }
         }
         if (!hasNearByPlayer) {
-            pendingSide = -1;
             setIsObserving(false);
         }
+    }
+
+    @Override
+    public void readFromNBT(NBTTagCompound compound)
+    {
+        super.readFromNBT(compound);
+        for(int i = 0 ; i < 6; i++) {
+            stateList[i] = NBTUtil.readBlockState(compound.getCompoundTag(EnumFacing.byIndex(i).getName()));
+        }
+        currentSide = compound.getShort("current");
+        pendingSide = currentSide;
+    }
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound compound)
+    {
+        for(int i = 0; i < 6; i++) {
+            if(stateList[i] != null) {
+                NBTTagCompound state = new NBTTagCompound();
+                NBTUtil.writeBlockState(state, stateList[i]);
+                compound.setTag(EnumFacing.byIndex(i).getName(), state);
+            }
+        }
+        compound.setShort("current", currentSide);
+        return super.writeToNBT(compound);
+    }
+
+    @Override
+    public void onLoad()
+    {
+        updateExtendedBlockState();
+        world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), getCamouflageBlockState(), DEFAULT_AND_RERENDER);
     }
 
     @Override
@@ -291,6 +278,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         NBTTagCompound tag = pkt.getNbtCompound();
         //int old = currentSide;
         this.currentSide = tag.getShort("current");
+        pendingSide = currentSide;
         updateExtendedBlockState();
         //Handle your Data
     }
@@ -305,7 +293,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     public IBlockState getCamouflageBlockState() {
         if( currentSide < 0 || stateList[0] == null)
         {
-            return QCraftBlocks.blockSwirl.getDefaultState();
+            return swirlBlockState;
         }
         return stateList[currentSide];
     }
@@ -313,7 +301,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private void updateExtendedBlockState() {
         IBlockState subState;
         if (currentSide < 0) {
-            subState = QCraftBlocks.blockSwirl.getDefaultState();
+            subState = swirlBlockState;
         } else {
             subState = stateList[currentSide];
         }
@@ -331,11 +319,12 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
 
     @Override
     public NBTTagCompound getUpdateTag() {
-        NBTTagCompound compound = new NBTTagCompound();
+        NBTTagCompound compound = super.getUpdateTag();
         for(int i = 0; i < 6; i++) {
             if(stateList[i] != null) {
-                compound.setTag(EnumFacing.byIndex(i).getName(), stackList[i].serializeNBT());
-                compound.setInteger(EnumFacing.byIndex(i).getName() + "-meta", stateList[i].getBlock().getMetaFromState(stateList[i]));
+                String face = EnumFacing.byIndex(i).getName();
+                compound.setInteger(face + "-id", Block.getIdFromBlock(stateList[i].getBlock()));
+                compound.setInteger(face + "-meta", stateList[i].getBlock().getMetaFromState(stateList[i]));
             }
         }
         compound.setShort("current", currentSide);
@@ -344,16 +333,13 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
 
     @Override
     public void handleUpdateTag(NBTTagCompound compound) {
+        super.handleUpdateTag(compound);
         for(int i = 0 ; i < 6; i++) {
-            ItemStack stack = new ItemStack(compound.getCompoundTag(EnumFacing.byIndex(i).getName()));
-            stackList[i] = stack;
-            if(stack.getItem() instanceof ItemBlock) {
-                stateList[i] = ((ItemBlock)stack.getItem()).getBlock().getStateFromMeta(compound.getInteger(EnumFacing.byIndex(i).getName() + "-meta"));
-            } else {
-                stateList[i] = Blocks.AIR.getDefaultState();
-            }
+            String face = EnumFacing.byIndex(i).getName();
+            stateList[i] = Block.getBlockById(compound.getInteger(face + "-id")).getStateFromMeta(compound.getInteger(face + "-meta"));
         }
         currentSide = compound.getShort("current");
+        pendingSide = currentSide;
         updateExtendedBlockState();
     }
 }

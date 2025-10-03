@@ -59,9 +59,6 @@ public class ItemBlockQBlock extends ItemBlock {
             }
             
             ((QBlockTileEntity) te).setStateList(stateList);
-
-            //blockstate can't be wrote to nbt, so stack is needed
-            ((QBlockTileEntity) te).setStackList(stackList);
         }
         return result;
     }

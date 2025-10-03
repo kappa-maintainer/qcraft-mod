@@ -2,7 +2,6 @@ package dan200.qcraft.proxy;
 
 import javax.annotation.Nullable;
 
-import dan200.qcraft.proxy.IProxy;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.IThreadListener;

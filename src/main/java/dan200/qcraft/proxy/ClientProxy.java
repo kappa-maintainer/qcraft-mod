@@ -2,9 +2,6 @@ package dan200.qcraft.proxy;
 
 import javax.annotation.Nullable;
 
-import codechicken.lib.render.block.BlockRenderingRegistry;
-import dan200.qcraft.QCraft;
-import dan200.qcraft.render.QBlockCCBlockRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.BufferBuilder;
@@ -57,9 +54,6 @@ public class ClientProxy implements IProxy {
 	}
 	@Override
 	public void preInit(FMLPreInitializationEvent event) {
-        
-        BlockRenderingRegistry.registerRenderer(QCraft.getQblockRenderType(), new QBlockCCBlockRenderer());
-
 	}
 
 	@Override

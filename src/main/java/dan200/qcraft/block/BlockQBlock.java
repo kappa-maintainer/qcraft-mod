@@ -1,6 +1,5 @@
 package dan200.qcraft.block;
 
-import dan200.qcraft.QCraft;
 import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.tileentity.QBlockTileEntity;
 import net.minecraft.block.BlockFalling;
@@ -9,7 +8,6 @@ import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -32,12 +30,6 @@ public class BlockQBlock extends BlockFalling implements ITileEntityProvider {
     }
     
     @Override
-    public EnumBlockRenderType getRenderType(IBlockState state)
-    {
-        return QCraft.getQblockRenderType();
-    }
-    
-    @Override
     public boolean isOpaqueCube(IBlockState state) {
         return false;
     }
@@ -51,7 +43,9 @@ public class BlockQBlock extends BlockFalling implements ITileEntityProvider {
     @Nullable
     @Override
     public TileEntity createTileEntity(World world, IBlockState state) {
-        return new QBlockTileEntity();
+        QBlockTileEntity te = new QBlockTileEntity();
+        te.setWorld(world);
+        return te;
     }
 
     @Override
@@ -85,7 +79,7 @@ public class BlockQBlock extends BlockFalling implements ITileEntityProvider {
     @Override
     @Nullable
     public TileEntity createNewTileEntity(World worldIn, int meta) {
-        return createTileEntity(worldIn, getStateFromMeta(meta));
+        return createTileEntity(worldIn, null);
     }
 
     @Override

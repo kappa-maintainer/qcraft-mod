@@ -66,7 +66,7 @@ unimined.minecraft {
         if (propertyBool('use_access_transformer')) {
             accessTransformer "${rootProject.projectDir}/src/main/resources/" +  propertyString('access_transformer_locations')
         }
-        loader "0.3.13-alpha"
+        loader "0.3.16-alpha"
         runs.auth.username = minecraft_username
         runs.all {
             def extraArgs = propertyString('extra_jvm_args')
@@ -104,6 +104,7 @@ unimined.minecraft {
 
     mods {
         remap(configurations.modCompileOnly)
+        remap(configurations.modRuntimeOnly)
     }
 }
 
@@ -162,6 +163,7 @@ sourceSets {
         }
     }
 }
+sourceSets.forEach { it -> System.out.println(it.output.classesDirs.join(","))}
 
 if (!propertyBool('enable_shadow')) {
     shadowJar.enabled = false
