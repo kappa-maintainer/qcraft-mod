@@ -1,12 +1,11 @@
 package dan200.qcraft.tileentity;
 
+import dan200.qcraft.QCraft;
 import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.QCraftItems;
 import dan200.qcraft.block.CamouflageState;
 import dan200.qcraft.block.ICamouflageableBlock;
-import dan200.qcraft.item.ItemQuantumGoggle;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -29,15 +28,16 @@ import static net.minecraftforge.common.util.Constants.BlockFlags.*;
 
 public class QBlockTileEntity extends TileEntity implements ITickable, ICamouflageableBlock {
 
-    public static int FUZZ_TIME = 9;
+    public static final int FUZZ_TIME = 9;
 
     private static final IBlockState swirlBlockState = QCraftBlocks.blockSwirl.getDefaultState();
     private static final IBlockState fuzzBlockState = QCraftBlocks.blockFuzz.getDefaultState();
 
     private boolean prevBeingObserver = false;
     private boolean beingObserved = true;
-    private short pendingSide = -1;
-    private short currentSide = -1;
+    private short pendingSide = 0;
+    private short currentSide = 0;
+    private boolean isFuzz = false;
     
     private IBlockState[] stateList = new IBlockState[6];
 
@@ -59,7 +59,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     
     @Override
     public void update() {
-        if (stateList[0] == null) return;
         if( !world.isRemote )
         {
             updateObserveState();
@@ -91,32 +90,26 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private void updateObserveState()
     {
         calculateObserves();
-        if (prevBeingObserver != beingObserved && (timeSinceLastChange > FUZZ_TIME || beingObserved)) {
-            if( currentSide != pendingSide )
-            {
-                int oldSide = currentSide;
+        boolean isTransition = !prevBeingObserver && beingObserved && pendingSide != currentSide;
+        if (isTransition) {
+            if (timeSinceLastChange < FUZZ_TIME) {
+                if (timeSinceLastChange == 0) {
+                    isFuzz = true;
+                    world.setBlockState(pos, new CamouflageState(getBlockType(), swirlBlockState));
+                    world.markBlockRangeForRenderUpdate(pos, pos);
+                    markDirty();
+                }
+            } else {
                 IBlockState oldType = getCamouflageBlockState();
                 currentSide = pendingSide;
-                int newSide = currentSide;
                 IBlockState newType = getCamouflageBlockState();
-                if( newType != oldType || (oldSide < 0 != newSide < 0) )
-                {
-                    updateExtendedBlockState();
-                    timeSinceLastChange = 0;
+                if (newType != oldType) {
+                    isFuzz = false;
+                    updateCamouflageBlockState();
 
-                    IBlockState oldSub;
-                    IBlockState newSub;
-                    if (oldSide < 0) {
-                        oldSub = swirlBlockState;
-                    } else {
-                        oldSub = stateList[oldSide];
-                    }
-                    if (currentSide < 0) {
-                        newSub = swirlBlockState;
-                    } else {
-                        newSub = stateList[currentSide];
-                    }
-                    world.notifyBlockUpdate(pos, oldSub, newSub, DEFAULT_AND_RERENDER);
+                    /*
+                    IBlockState newSub = stateList[currentSide];
+                    world.notifyBlockUpdate(pos, swirlBlockState, newSub, DEFAULT_AND_RERENDER);*/
                 }
             }
         }
@@ -158,7 +151,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
 
                 // Get position info:
                 double x = entityPlayer.posX - centerX;
-                double y = entityPlayer.posY + entityPlayer.getEyeHeight() - entityPlayer.getYOffset() - centerY;
+                double y = entityPlayer.posY + entityPlayer.getEyeHeight() - centerY;// - entityPlayer.getYOffset() - centerY;
                 double z = entityPlayer.posZ - centerZ;
 
                 // Check distance:
@@ -178,51 +171,55 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                     float f3 = -MathHelper.cos(yaw * degree2pi);
                     float f4 = MathHelper.sin(yaw * degree2pi);
                     float f5 = MathHelper.cos(pitch * degree2pi);
-                    float f6 = -MathHelper.sin(pitch * degree2pi);
+                    float f6 = MathHelper.sin(pitch * degree2pi);
                     float f7 = f4 * f5;
                     float f8 = f3 * f5;
 
                     // Compare facing and direction (must be close to opposite):
                     double dot = (double) f7 * dx + (double) f6 * dy + (double) f8 * dz;
-                    if (dot < -0.4) {
+                    
+                    if (dot > 0.4) {
+                        if (!beingObserved) {
+                            setIsObserving(true);
 
-                        // Block is being observed!
-                        setIsObserving(false);
+                            // Determine the major axis:
+                            short majoraxis = -1;
+                            double majorweight = 0.0f;
 
-                        // Determine the major axis:
-                        short majoraxis = -1;
-                        double majorweight = 0.0f;
+                            if (-dy >= majorweight) {
+                                majoraxis = 0;
+                                majorweight = -dy;
+                            }
+                            if (dy >= majorweight) {
+                                majoraxis = 1;
+                                majorweight = dy;
+                            }
+                            if (-dz >= majorweight) {
+                                majoraxis = 2;
+                                majorweight = -dz;
+                            }
+                            if (dz >= majorweight) {
+                                majoraxis = 3;
+                                majorweight = dz;
+                            }
+                            if (-dx >= majorweight) {
+                                majoraxis = 4;
+                                majorweight = -dx;
+                            }
+                            if (dx >= majorweight) {
+                                majoraxis = 5;
+                            }
 
-                        if (-dy >= majorweight) {
-                            majoraxis = 0;
-                            majorweight = -dy;
-                        }
-                        if (dy >= majorweight) {
-                            majoraxis = 1;
-                            majorweight = dy;
-                        }
-                        if (-dz >= majorweight) {
-                            majoraxis = 2;
-                            majorweight = -dz;
-                        }
-                        if (dz >= majorweight) {
-                            majoraxis = 3;
-                            majorweight = dz;
-                        }
-                        if (-dx >= majorweight) {
-                            majoraxis = 4;
-                            majorweight = -dx;
-                        }
-                        if (dx >= majorweight) {
-                            majoraxis = 5;
-                        }
-
-                        // Vote for this axis
-                        if (majoraxis >= 0) {
-                            pendingSide = majoraxis;
+                            // Vote for this axis
+                            if (majoraxis >= 0) {
+                                if (pendingSide != majoraxis) {
+                                    pendingSide = majoraxis;
+                                    timeSinceLastChange = 0;
+                                }
+                            }
                         }
                     } else {
-                        setIsObserving(true);
+                        setIsObserving(false);
                     }
                 }
             }
@@ -260,7 +257,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     @Override
     public void onLoad()
     {
-        updateExtendedBlockState();
+        updateCamouflageBlockState();
         world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), getCamouflageBlockState(), DEFAULT_AND_RERENDER);
     }
 
@@ -269,6 +266,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         NBTTagCompound nbtTag = new NBTTagCompound();
         //Write your data into the nbtTag
         nbtTag.setShort("current", currentSide);
+        nbtTag.setBoolean("fuzz", isFuzz);
         return new SPacketUpdateTileEntity(getPos(), 1, nbtTag);
     }
 
@@ -277,9 +275,15 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         
         NBTTagCompound tag = pkt.getNbtCompound();
         //int old = currentSide;
-        this.currentSide = tag.getShort("current");
-        pendingSide = currentSide;
-        updateExtendedBlockState();
+        this.isFuzz = tag.getBoolean("fuzz");
+        if (isFuzz) {
+            world.setBlockState(pos, new CamouflageState(getBlockType(), swirlBlockState));
+            world.markBlockRangeForRenderUpdate(pos, pos);
+        } else {
+            this.currentSide = tag.getShort("current");
+            pendingSide = currentSide;
+            updateCamouflageBlockState();
+        }
         //Handle your Data
     }
 
@@ -298,15 +302,9 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         return stateList[currentSide];
     }
     
-    private void updateExtendedBlockState() {
-        IBlockState subState;
-        if (currentSide < 0) {
-            subState = swirlBlockState;
-        } else {
-            subState = stateList[currentSide];
-        }
+    private void updateCamouflageBlockState() {
+        IBlockState subState = stateList[currentSide];
         
-        //world.setBlockState(pos, ((IExtendedBlockState) QCraftBlocks.blockQBlock.getExtendedState(QCraftBlocks.blockQBlock.getDefaultState(), world, pos)).withProperty(CamouflageBlockProperty.CURRENT_CAMOU, subState));
         world.setBlockState(pos, new CamouflageState(QCraftBlocks.blockQBlock, subState));
         world.markBlockRangeForRenderUpdate(pos, pos);
         markDirty();
@@ -340,6 +338,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         }
         currentSide = compound.getShort("current");
         pendingSide = currentSide;
-        updateExtendedBlockState();
+        updateCamouflageBlockState();
     }
 }
