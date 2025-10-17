@@ -1,11 +1,17 @@
 package dan200.qcraft.block;
 
-import net.minecraft.world.World;
+import net.minecraft.util.EnumFacing;
 
+/**
+ * Interface to blocks with quantum property.
+ * DO NOT do remote observing, that's entangle 
+ */
 public interface IQuantumObservable {
-    public boolean isObserved(World world, int x, int y, int z, int side );
+    boolean isObserved();
+    
+    boolean isObserved(EnumFacing facing);
 
-    public void observe( World world, int x, int y, int z, int side );
+    void observe(EnumFacing facing);
 
-    public void reset( World world, int x, int y, int z, int side );
+    void reset(EnumFacing facing);
 }

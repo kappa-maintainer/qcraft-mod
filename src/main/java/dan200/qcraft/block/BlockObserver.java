@@ -1,6 +1,7 @@
 package dan200.qcraft.block;
 
 import dan200.qcraft.QCraft;
+import dan200.qcraft.tileentity.QBlockTileEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockRedstoneDiode;
 import net.minecraft.block.ITileEntityProvider;
@@ -19,7 +20,7 @@ import net.minecraft.world.World;
 import javax.annotation.Nullable;
 import java.util.Random;
 
-public class BlockObserver extends BlockRedstoneDiode implements ITileEntityProvider {
+public class BlockObserver extends BlockRedstoneDiode {
     public static final PropertyBool POWERED = PropertyBool.create("powered");
 
     public BlockObserver(boolean powered) {
@@ -54,11 +55,6 @@ public class BlockObserver extends BlockRedstoneDiode implements ITileEntityProv
     protected BlockStateContainer createBlockState()
     {
         return new BlockStateContainer(this, FACING, POWERED);
-    }
-    @Nullable
-    @Override
-    public TileEntity createNewTileEntity(World worldIn, int meta) {
-        return null;
     }
 
     @Override
@@ -96,14 +92,28 @@ public class BlockObserver extends BlockRedstoneDiode implements ITileEntityProv
     {
         if (!worldIn.isRemote)
         {
-            if (!worldIn.isBlockPowered(pos))
+            EnumFacing facing = state.getValue(FACING);
+            EnumFacing opposite = facing.getOpposite();
+            if (worldIn.isBlockPowered(pos) && worldIn.isSidePowered(pos.offset(facing), facing))
+            {
+                worldIn.setBlockState(pos, getPoweredState(state), 2);
+                TileEntity te = worldIn.getTileEntity(pos.offset(opposite));
+                if (te instanceof IQuantumObservable qte) {
+                    if (!qte.isObserved(facing)) {
+                        qte.observe(facing);
+                    }
+                }
+            }
+            else
             {
                 worldIn.scheduleUpdate(pos, this, 4);
-                worldIn.setBlockState(pos, state.withProperty(POWERED, false), 2);
-            }
-            else if (worldIn.isBlockPowered(pos) && worldIn.isSidePowered(pos.offset(state.getValue(FACING)), state.getValue(FACING)))
-            {
-                worldIn.setBlockState(pos, state.withProperty(POWERED, true), 2);
+                worldIn.setBlockState(pos, getUnpoweredState(state), 2);
+                TileEntity te = worldIn.getTileEntity(pos.offset(opposite));
+                if (te instanceof IQuantumObservable qte) {
+                    if (qte.isObserved(facing)) {
+                        qte.reset(facing);
+                    }
+                }
             }
         }
     }

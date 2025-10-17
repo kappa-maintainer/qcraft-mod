@@ -1,10 +1,10 @@
 package dan200.qcraft.tileentity;
 
-import dan200.qcraft.QCraft;
 import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.QCraftItems;
 import dan200.qcraft.block.CamouflageState;
 import dan200.qcraft.block.ICamouflageableBlock;
+import dan200.qcraft.block.IQuantumObservable;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -21,12 +21,13 @@ import net.minecraft.util.ITickable;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.util.List;
 
 import static net.minecraftforge.common.util.Constants.BlockFlags.*;
 
-public class QBlockTileEntity extends TileEntity implements ITickable, ICamouflageableBlock {
+public class QBlockTileEntity extends TileEntity implements ITickable, ICamouflageableBlock, IQuantumObservable {
 
     public static final int FUZZ_TIME = 9;
 
@@ -40,9 +41,13 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private boolean isFuzz = false;
     
     private IBlockState[] stateList = new IBlockState[6];
-
-    // Client only
-    public int timeSinceLastChange = 10;
+    private final boolean[] faceBeingObserved = new boolean[] {false, false, false, false, false, false};
+    private boolean isForceObserved = false;
+    private short forceSide = 0;
+    private short forceCounter = 0;
+    private static final RandomUtils RANDOM = RandomUtils.insecure();
+    
+    public int transitionCounter = 10;
     private boolean wearingGoggle;
     
     private static final float degree2pi = (float) (Math.PI / 180.0F);
@@ -62,11 +67,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         if( !world.isRemote )
         {
             updateObserveState();
-        }
-
-        // Update ticker, goggles and wetness
-        timeSinceLastChange++;
-        if (world.isRemote) {
+        } else {
             boolean goggles = Minecraft.getMinecraft().player.getItemStackFromSlot(EntityEquipmentSlot.HEAD).getItem().equals(QCraftItems.itemQuantumGoggle);
             if (wearingGoggle != goggles) {
                 wearingGoggle = goggles;
@@ -89,28 +90,49 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
 
     private void updateObserveState()
     {
-        calculateObserves();
-        boolean isTransition = !prevBeingObserver && beingObserved && pendingSide != currentSide;
-        if (isTransition) {
-            if (timeSinceLastChange < FUZZ_TIME) {
-                if (timeSinceLastChange == 0) {
-                    isFuzz = true;
-                    world.setBlockState(pos, new CamouflageState(getBlockType(), swirlBlockState));
-                    world.markBlockRangeForRenderUpdate(pos, pos);
-                    markDirty();
-                }
-            } else {
-                IBlockState oldType = getCamouflageBlockState();
-                currentSide = pendingSide;
-                IBlockState newType = getCamouflageBlockState();
-                if (newType != oldType) {
-                    isFuzz = false;
-                    updateCamouflageBlockState();
+        if (!isForceObserved) {
+            calculateObserves();
+            boolean isTransition = !prevBeingObserver && beingObserved && pendingSide != currentSide;
+            if (isTransition) {
+                if (transitionCounter <= FUZZ_TIME) {
+                    if (transitionCounter == 0) {
+                        isFuzz = true;
+                        world.setBlockState(pos, new CamouflageState(getBlockType(), swirlBlockState));
+                        world.markBlockRangeForRenderUpdate(pos, pos);
+                        markDirty();
+                    }
+                } else {
+                    IBlockState oldType = getCamouflageBlockState();
+                    currentSide = pendingSide;
+                    IBlockState newType = getCamouflageBlockState();
+                    if (newType != oldType) {
+                        isFuzz = false;
+                        updateCamouflageBlockState();
 
                     /*
                     IBlockState newSub = stateList[currentSide];
                     world.notifyBlockUpdate(pos, swirlBlockState, newSub, DEFAULT_AND_RERENDER);*/
+                    }
                 }
+                transitionCounter++;
+            }
+        } else {
+            if (transitionCounter == 0) {
+                transitionCounter++;
+                isFuzz = true;
+                world.setBlockState(pos, new CamouflageState(getBlockType(), swirlBlockState));
+                world.markBlockRangeForRenderUpdate(pos, pos);
+                markDirty();
+            } else if (transitionCounter == FUZZ_TIME) {
+                IBlockState oldType = getCamouflageBlockState();
+                forceSide = pendingSide;
+                IBlockState newType = getCamouflageBlockState();
+                if (newType != oldType) {
+                    isFuzz = false;
+                    updateCamouflageBlockState();
+                }
+            } else {
+                transitionCounter++;
             }
         }
     }
@@ -132,7 +154,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         // For each player:
         List<EntityPlayer> players = world.playerEntities;
         if (players.isEmpty()) {
-            setIsObserving(false);
+            setIsObservingByPlayer(false);
             return;
         }
         
@@ -180,7 +202,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                     
                     if (dot > 0.4) {
                         if (!beingObserved) {
-                            setIsObserving(true);
+                            setIsObservingByPlayer(true);
 
                             // Determine the major axis:
                             short majoraxis = -1;
@@ -214,18 +236,18 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                             if (majoraxis >= 0) {
                                 if (pendingSide != majoraxis) {
                                     pendingSide = majoraxis;
-                                    timeSinceLastChange = 0;
+                                    transitionCounter = 0;
                                 }
                             }
                         }
                     } else {
-                        setIsObserving(false);
+                        setIsObservingByPlayer(false);
                     }
                 }
             }
         }
         if (!hasNearByPlayer) {
-            setIsObserving(false);
+            setIsObservingByPlayer(false);
         }
     }
 
@@ -265,7 +287,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     public SPacketUpdateTileEntity getUpdatePacket(){
         NBTTagCompound nbtTag = new NBTTagCompound();
         //Write your data into the nbtTag
-        nbtTag.setShort("current", currentSide);
+        nbtTag.setShort("current", isForceObserved ? forceSide : currentSide);
         nbtTag.setBoolean("fuzz", isFuzz);
         return new SPacketUpdateTileEntity(getPos(), 1, nbtTag);
     }
@@ -299,18 +321,27 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         {
             return swirlBlockState;
         }
-        return stateList[currentSide];
+        if (isForceObserved) {
+            return stateList[forceSide];
+        } else {
+            return stateList[currentSide];
+        }
     }
     
     private void updateCamouflageBlockState() {
-        IBlockState subState = stateList[currentSide];
+        IBlockState subState;
+        if (isForceObserved) {
+            subState = stateList[forceSide];
+        } else {
+            subState = stateList[currentSide];
+        }
         
         world.setBlockState(pos, new CamouflageState(QCraftBlocks.blockQBlock, subState));
         world.markBlockRangeForRenderUpdate(pos, pos);
         markDirty();
     }
     
-    private void setIsObserving(boolean observed) {
+    private void setIsObservingByPlayer(boolean observed) {
         prevBeingObserver = beingObserved;
         beingObserved = observed;
     }
@@ -339,5 +370,63 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         currentSide = compound.getShort("current");
         pendingSide = currentSide;
         updateCamouflageBlockState();
+    }
+
+    @Override
+    public boolean isObserved() {
+        return isForceObserved;
+    }
+
+    @Override
+    public boolean isObserved(EnumFacing facing) {
+        return faceBeingObserved[facing.ordinal()];
+    }
+
+    @Override
+    public void observe(EnumFacing facing) {
+        short ordinal = (short) facing.ordinal();
+        if (faceBeingObserved[ordinal]) {
+            return;
+        } else {
+            faceBeingObserved[facing.ordinal()] = true;
+            forceCounter++;
+        }
+        if(!isForceObserved) {
+            isForceObserved = true;
+            forceSide = currentSide;
+        }
+        updateForceSide(ordinal);
+    }
+
+    @Override
+    public void reset(EnumFacing facing) {
+        int ordinal = facing.ordinal();
+        if (!faceBeingObserved[ordinal]) {
+            return;
+        } else {
+            faceBeingObserved[facing.ordinal()] = false;
+            forceCounter--;
+        }
+        if (forceCounter == 0) {
+            isForceObserved = false;
+            transitionCounter = 0;
+            currentSide = forceSide;
+            return;
+        }
+        short random = (short) RANDOM.randomInt(1, forceCounter);
+        for(short i = 0; i < 6; i++) {
+            if (faceBeingObserved[i]) {
+                random--;
+            }
+            if (random == 0) {
+                updateForceSide(i);
+            }
+        }
+    }
+    
+    private void updateForceSide(short newSide) {
+        pendingSide = newSide;
+        if (newSide != forceSide)
+            transitionCounter = 0;
     }
 }
