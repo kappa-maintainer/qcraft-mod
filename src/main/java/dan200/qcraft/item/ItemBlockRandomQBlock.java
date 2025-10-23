@@ -13,9 +13,9 @@ public class ItemBlockRandomQBlock extends ItemBlockQBlock {
     public String getTranslationKey(ItemStack stack)
     {
         if (stack.getTagCompound() != null && stack.getTagCompound().hasKey("entangled")) {
-            return "tile.qcraft.qblock_entangled.name";
+            return "tile.qcraft.qblock_entangled";
         } else {
-            return "tile.qcraft.qblock.name";
+            return "tile.qcraft.qblock";
         }
     }
 }

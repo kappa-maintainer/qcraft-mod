@@ -53,7 +53,7 @@ public class ItemBlockQBlock extends ItemBlock {
                 }
             }
             
-            qte.setStateList(stateList);
+            qte.setStateList(stateList, stack.copy());
             if (compound.hasKey("entangle")) {
                 qte.setEntangle(NBTUtil.getUUIDFromTag((NBTTagCompound) compound.getTag("entangle")));
             }
@@ -65,12 +65,11 @@ public class ItemBlockQBlock extends ItemBlock {
     public String getTranslationKey(ItemStack stack)
     {
         if (stack.getTagCompound() != null && stack.getTagCompound().hasKey("entangled")) {
-            return "tile.qcraft.odb_entangled.name";
+            return "tile.qcraft.odb_entangled";
         } else {
-            return "tile.qcraft.odb.name";
+            return "tile.qcraft.odb";
         }
     }
-
 
 }
 

@@ -27,6 +27,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static net.minecraftforge.common.util.Constants.BlockFlags.*;
@@ -38,10 +39,10 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private static final IBlockState swirlBlockState = QCraftBlocks.blockSwirl.getDefaultState();
     private static final IBlockState fuzzBlockState = QCraftBlocks.blockFuzz.getDefaultState();
     
-    private boolean isPlayerObserved = true;
+    private boolean isPlayerObserved = false;
     private short pendingSide = 0;
     private short currentSide = 0;
-    private boolean isChanging = true;
+    private boolean isChanging = false;
     
     private IBlockState[] stateList = new IBlockState[6];
     private final boolean[] faceBeingObserved = new boolean[6];
@@ -49,7 +50,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private short forceCounter = 0;
     private boolean isEntangle = false;
     private UUID entangleId = null;
-    protected static final RandomUtils RANDOM = RandomUtils.insecure();
+    private ItemStack drop = null;
     
     public int transitionCounter = 0;
     @SideOnly(Side.CLIENT)
@@ -83,14 +84,20 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         }
     }
 
-    public void setStateList(IBlockState[] list) {
+    public void setStateList(IBlockState[] list, ItemStack drop) {
         this.stateList = list;
+        drop.setCount(1);
+        this.drop = drop;
     }
     
     public void setEntangle(UUID uuid) {
         this.entangleId = uuid;
         this.isEntangle = true;
         EntangleData.getInstance(world).addToEntangle(entangleId, this);
+    }
+    
+    public ItemStack getDropStack() {
+        return Objects.requireNonNullElse(drop, ItemStack.EMPTY);
     }
 
     private void eval()
@@ -310,7 +317,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             isForceObserved = false;
             return;
         }
-        short random = (short) RANDOM.randomInt(1, forceCounter);
+        short random = (short) world.rand.nextInt(1, forceCounter);
         for(short i = 0; i < 6; i++) {
             if (faceBeingObserved[i]) {
                 random--;
@@ -343,6 +350,9 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             entangleId = NBTUtil.getUUIDFromTag((NBTTagCompound) compound.getTag("entangle"));
             EntangleData.getInstance(world).addToEntangle(entangleId, this);
         }
+        if (compound.hasKey("drop")) {
+            drop = new ItemStack((NBTTagCompound) compound.getTag("drop"));
+        }
     }
 
     @Override
@@ -359,6 +369,10 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         if (isEntangle) {
             compound.setTag("entangle", NBTUtil.createUUIDTag(entangleId));
         }
+        if (drop != null) {
+            compound.setTag("drop", drop.writeToNBT(new NBTTagCompound()));
+        }
+        
         return super.writeToNBT(compound);
     }
 

@@ -11,6 +11,6 @@ public class RandomQBlockTileEntity extends QBlockTileEntity{
 
     @Override
     protected short getObservingSide(double dx, double dy, double dz) {
-        return (short) RANDOM.randomInt(0, 5);
+        return (short) world.rand.nextInt(0, 5);
     }
 }
