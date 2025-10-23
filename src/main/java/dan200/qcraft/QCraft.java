@@ -5,13 +5,16 @@ import dan200.qcraft.block.BlockFuzz;
 import dan200.qcraft.block.BlockObserver;
 import dan200.qcraft.block.BlockQBlock;
 import dan200.qcraft.block.BlockQuantumOre;
+import dan200.qcraft.block.BlockRandomQBlock;
 import dan200.qcraft.block.BlockSwirl;
+import dan200.qcraft.crafting.EntangleRecipe;
 import dan200.qcraft.crafting.QBlockRecipe;
 import dan200.qcraft.gen.OreGenerator;
 import dan200.qcraft.item.*;
 import dan200.qcraft.proxy.IProxy;
 import dan200.qcraft.render.QBlockMeshDefinition;
 import dan200.qcraft.tileentity.QBlockTileEntity;
+import dan200.qcraft.tileentity.RandomQBlockTileEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
@@ -51,8 +54,8 @@ public class QCraft {
     
     @SidedProxy(clientSide = "dan200.qcraft.proxy.ClientProxy", serverSide = "dan200.qcraft.proxy.CommonProxy")
     public static IProxy proxy;
-    public static final SimpleNetworkWrapper INSTANCE = NetworkRegistry.INSTANCE.newSimpleChannel(Reference.MOD_ID);
-    public static Logger LOGGER = LogManager.getLogger("qCraft");
+    public static final String MOD_ID = Reference.MOD_ID;
+    public static Logger LOGGER = LogManager.getLogger(MOD_ID);
 	public static int currentType;
     private int ticks;
 	@Instance(Reference.MOD_ID)
@@ -60,7 +63,7 @@ public class QCraft {
 
     public QCraft() {}
 
-    public static final CreativeTabs QCRAT_TAB = new CreativeTabs("qcraft") {
+    public static final CreativeTabs QCRAT_TAB = new CreativeTabs(MOD_ID) {
         @Override
         public ItemStack createIcon() {
             return new ItemStack(QCraftItems.itemEoO);
@@ -74,7 +77,8 @@ public class QCraft {
 
     @SubscribeEvent
     public void registerRecipe(RegistryEvent.Register<IRecipe> event) {
-        event.getRegistry().register(new QBlockRecipe().setRegistryName(new ResourceLocation("qcraft", "qblockrecipe")));
+        event.getRegistry().register(new QBlockRecipe().setRegistryName(new ResourceLocation(MOD_ID, "qblockrecipe")));
+        event.getRegistry().register(new EntangleRecipe().setRegistryName(new ResourceLocation(MOD_ID, "entanglerecipe")));
 
     }
 
@@ -85,7 +89,8 @@ public class QCraft {
         QCraftBlocks.blockQuantumOre = new BlockQuantumOre(false);
         QCraftBlocks.blockQuantumOreOn = new BlockQuantumOre(true);
         QCraftBlocks.blockObserver = new BlockObserver(false);
-        QCraftBlocks.blockQBlock = new BlockQBlock();
+        QCraftBlocks.blockQBlock = (BlockQBlock) new BlockQBlock().setRegistryName("qcraft:qblock");
+        QCraftBlocks.blockRandomQBlock = (BlockRandomQBlock) new BlockRandomQBlock().setRegistryName("qcraft:random_qblock");
         QCraftBlocks.blockTransparent = new Block(Material.AIR).setRegistryName("qcraft:transparent").setTranslationKey("qcraft.transparent");
 
         IForgeRegistry<Block> registry = event.getRegistry();
@@ -95,9 +100,11 @@ public class QCraft {
         registry.register(QCraftBlocks.blockQuantumOreOn);
         registry.register(QCraftBlocks.blockObserver);
         registry.register(QCraftBlocks.blockQBlock);
+        registry.register(QCraftBlocks.blockRandomQBlock);
         registry.register(QCraftBlocks.blockTransparent);
 
         GameRegistry.registerTileEntity(QBlockTileEntity.class, new ResourceLocation("qcraft:qbte"));
+        GameRegistry.registerTileEntity(RandomQBlockTileEntity.class, new ResourceLocation("qcraft:rqbte"));
     }
 
     @SubscribeEvent
@@ -110,7 +117,8 @@ public class QCraft {
         QCraftItems.itemBlockObserver = new ItemBlockObserver(QCraftBlocks.blockObserver);
         QCraftItems.itemQuantumGoggle = new ItemQuantumGoggle();
         QCraftItems.itemAntiObserveGoggle = new ItemAntiObserveGoggle();
-        QCraftItems.itemBlockQBlock = new ItemBlockQBlock(QCraftBlocks.blockQBlock);
+        QCraftItems.itemBlockQBlock = (ItemBlockQBlock) new ItemBlockQBlock(QCraftBlocks.blockQBlock).setRegistryName("qcraft:qblock");
+        QCraftItems.itemBlockRandomQBlock = (ItemBlockRandomQBlock) new ItemBlockRandomQBlock(QCraftBlocks.blockRandomQBlock).setRegistryName("qcraft:random_qblock");
 
         IForgeRegistry<Item> registry = event.getRegistry();
         registry.register(QCraftItems.itemQuantumDust);
@@ -122,6 +130,7 @@ public class QCraft {
         registry.register(QCraftItems.itemQuantumGoggle);
         registry.register(QCraftItems.itemAntiObserveGoggle);
         registry.register(QCraftItems.itemBlockQBlock);
+        registry.register(QCraftItems.itemBlockRandomQBlock);
 
     }
     @SideOnly(Side.CLIENT)
@@ -145,6 +154,7 @@ public class QCraft {
                 new ModelResourceLocation(QCraftItems.itemAntiObserveGoggle.getRegistryName(), "inventory"));
 
         ModelLoader.setCustomMeshDefinition(QCraftItems.itemBlockQBlock, new  QBlockMeshDefinition());
+        ModelLoader.setCustomMeshDefinition(QCraftItems.itemBlockRandomQBlock, new  QBlockMeshDefinition());
     }
     
     @SubscribeEvent

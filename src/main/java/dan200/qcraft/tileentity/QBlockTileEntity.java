@@ -5,6 +5,8 @@ import dan200.qcraft.QCraftItems;
 import dan200.qcraft.block.CamouflageState;
 import dan200.qcraft.block.ICamouflageableBlock;
 import dan200.qcraft.block.IQuantumObservable;
+import dan200.qcraft.entangle.EntangleData;
+import dan200.qcraft.entangle.SideHolder;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -26,6 +28,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.lang3.RandomUtils;
 
 import java.util.List;
+import java.util.UUID;
 
 import static net.minecraftforge.common.util.Constants.BlockFlags.*;
 
@@ -39,13 +42,16 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private boolean isPlayerObserved = true;
     private short pendingSide = 0;
     private short currentSide = 0;
-    private boolean isChanging = false;
+    private boolean isChanging = true;
     
     private IBlockState[] stateList = new IBlockState[6];
     private final boolean[] faceBeingObserved = new boolean[6];
     private boolean isForceObserved = false;
     private short forceCounter = 0;
-    private static final RandomUtils RANDOM = RandomUtils.insecure();
+    private boolean isEntangle = false;
+    private UUID entangleId = null;
+    private SideHolder holder = null;
+    protected static final RandomUtils RANDOM = RandomUtils.insecure();
     
     public int transitionCounter = 0;
     @SideOnly(Side.CLIENT)
@@ -53,10 +59,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     
     public static final float degree2pi = (float) (Math.PI / 180.0F);
     
-    public QBlockTileEntity() {
-        blockType = QCraftBlocks.blockQBlock;
-    }
-
     @Override
     public Block getBlockType()
     {
@@ -87,6 +89,11 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         this.stateList = list;
     }
     
+    public void setEntangle(UUID uuid) {
+        this.entangleId = uuid;
+        this.isEntangle = true;
+        holder = EntangleData.getInstance(world).getSideFromUUID(entangleId, currentSide);
+    }
 
     private void eval()
     {
@@ -98,13 +105,13 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
                     world.markBlockRangeForRenderUpdate(pos, pos);
                     markDirty();
                 } else if (transitionCounter == FUZZ_TIME) {
+                    isChanging = false;
                     IBlockState oldType = getCamouflageBlockState();
                     currentSide = pendingSide;
                     IBlockState newType = getCamouflageBlockState();
                     if (newType != oldType) {
                         updateCamouflageBlockState();
                     }
-                    isChanging = false;
                 }
                 transitionCounter++;
             }
@@ -233,7 +240,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         }
         
         return majoraxis;
-    } 
+    }
 
     private void setIsObservingByPlayer(boolean observed) {
         if (isPlayerObserved != observed) {
@@ -244,13 +251,12 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             }
         }
     }
-
-
+    
     private void updateCamouflageBlockState() {
         IBlockState subState;
         subState = stateList[currentSide];
 
-        world.setBlockState(pos, new CamouflageState(QCraftBlocks.blockQBlock, subState));
+        world.setBlockState(pos, new CamouflageState(getBlockType(), subState));
         world.markBlockRangeForRenderUpdate(pos, pos);
         markDirty();
     }
@@ -316,17 +322,22 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     public void readFromNBT(NBTTagCompound compound)
     {
         super.readFromNBT(compound);
-        for(int i = 0 ; i < 6; i++) {
+        for(short i = 0 ; i < 6; i++) {
             stateList[i] = NBTUtil.readBlockState(compound.getCompoundTag(EnumFacing.byIndex(i).getName()));
         }
         currentSide = compound.getShort("current");
         pendingSide = currentSide;
+        if (compound.hasKey("entangle")) {
+            isEntangle = true;
+            entangleId = NBTUtil.getUUIDFromTag((NBTTagCompound) compound.getTag("entangle"));
+            holder = EntangleData.getInstance(world).getSideFromUUID(entangleId, pendingSide);
+        }
     }
 
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound compound)
     {
-        for(int i = 0; i < 6; i++) {
+        for(short i = 0; i < 6; i++) {
             if(stateList[i] != null) {
                 NBTTagCompound state = new NBTTagCompound();
                 NBTUtil.writeBlockState(state, stateList[i]);
@@ -334,6 +345,9 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             }
         }
         compound.setShort("current", currentSide);
+        if (isEntangle) {
+            compound.setTag("entangle", NBTUtil.createUUIDTag(entangleId));
+        }
         return super.writeToNBT(compound);
     }
 
@@ -341,7 +355,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     public void onLoad()
     {
         updateCamouflageBlockState();
-        world.notifyBlockUpdate(pos, QCraftBlocks.blockQBlock.getDefaultState(), getCamouflageBlockState(), DEFAULT_AND_RERENDER);
+        world.notifyBlockUpdate(pos, getBlockType().getDefaultState(), getCamouflageBlockState(), DEFAULT_AND_RERENDER);
     }
 
     @Override
@@ -364,7 +378,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
             world.markBlockRangeForRenderUpdate(pos, pos);
         } else {
             this.currentSide = tag.getShort("current");
-            pendingSide = currentSide;
             updateCamouflageBlockState();
         }
         //Handle your Data

@@ -19,9 +19,12 @@ import java.util.Random;
 public class BlockQBlock extends BlockFalling implements ITileEntityProvider {
     public BlockQBlock() {
         super(Material.GLASS);
-        setRegistryName("qcraft:qblock");
-        setTranslationKey("qcraft.qblock");
+        setTranslationKey("qcraft.odb");
         setDefaultState(new CamouflageState(this, QCraftBlocks.blockSwirl.getDefaultState()));
+    }
+
+    public BlockQBlock(Material material) {
+        super(material);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package dan200.qcraft.crafting;
 
+import dan200.qcraft.QCraftBlocks;
 import dan200.qcraft.QCraftItems;
 import net.minecraft.client.Minecraft;
 import net.minecraft.init.Items;
@@ -52,7 +53,18 @@ public class QBlockRecipe implements IRecipe {
 
     @Override
     public ItemStack getCraftingResult(InventoryCrafting inv) {
-        ItemStack result = new ItemStack(QCraftItems.itemBlockQBlock);
+        ItemStack result = null;
+        for(int i = 0; i < inv.getSizeInventory(); i++) {
+            if(inv.getStackInSlot(i).getItem() == QCraftItems.itemEoO) {
+                result = new ItemStack(QCraftItems.itemBlockQBlock);
+            } else if (inv.getStackInSlot(i).getItem() == QCraftItems.itemEoS) {
+                result = new ItemStack(QCraftItems.itemBlockRandomQBlock);
+            }
+
+        }
+        if (result == null) {
+            return ItemStack.EMPTY;
+        }
         result.setTagCompound(resultnbt);
         return result.copy();
     }
@@ -64,7 +76,7 @@ public class QBlockRecipe implements IRecipe {
 
     @Override
     public ItemStack getRecipeOutput() {
-        return ItemStack.EMPTY;
+        return new ItemStack(QCraftBlocks.blockQBlock);
     }
 
     @Override
@@ -74,7 +86,7 @@ public class QBlockRecipe implements IRecipe {
 
     @Override
     public IRecipe setRegistryName(ResourceLocation name) {
-        QBlockRecipe.name =name;
+        QBlockRecipe.name = name;
         return this;
     }
 
