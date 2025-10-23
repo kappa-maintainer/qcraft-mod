@@ -6,7 +6,6 @@ import dan200.qcraft.block.CamouflageState;
 import dan200.qcraft.block.ICamouflageableBlock;
 import dan200.qcraft.block.IQuantumObservable;
 import dan200.qcraft.entangle.EntangleData;
-import dan200.qcraft.entangle.SideHolder;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -50,7 +49,6 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     private short forceCounter = 0;
     private boolean isEntangle = false;
     private UUID entangleId = null;
-    private SideHolder holder = null;
     protected static final RandomUtils RANDOM = RandomUtils.insecure();
     
     public int transitionCounter = 0;
@@ -92,7 +90,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     public void setEntangle(UUID uuid) {
         this.entangleId = uuid;
         this.isEntangle = true;
-        holder = EntangleData.getInstance(world).getSideFromUUID(entangleId, currentSide);
+        EntangleData.getInstance(world).addToEntangle(entangleId, this);
     }
 
     private void eval()
@@ -101,6 +99,9 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         if (isChanging) {
             if (transitionCounter <= FUZZ_TIME) {
                 if (transitionCounter == 0) {
+                    if (isEntangle) {
+                        EntangleData.getInstance(world).observe(entangleId, pendingSide);
+                    }
                     world.setBlockState(pos, new CamouflageState(getBlockType(), swirlBlockState));
                     world.markBlockRangeForRenderUpdate(pos, pos);
                     markDirty();
@@ -252,6 +253,16 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         }
     }
     
+    public void nonForceObserve(short side) {
+        if (pendingSide != side) {
+            pendingSide = side;
+            if (!isChanging) {
+                isChanging = true;
+                transitionCounter = 0;
+            }
+        }
+    }
+    
     private void updateCamouflageBlockState() {
         IBlockState subState;
         subState = stateList[currentSide];
@@ -330,7 +341,7 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
         if (compound.hasKey("entangle")) {
             isEntangle = true;
             entangleId = NBTUtil.getUUIDFromTag((NBTTagCompound) compound.getTag("entangle"));
-            holder = EntangleData.getInstance(world).getSideFromUUID(entangleId, pendingSide);
+            EntangleData.getInstance(world).addToEntangle(entangleId, this);
         }
     }
 
@@ -386,7 +397,11 @@ public class QBlockTileEntity extends TileEntity implements ITickable, ICamoufla
     @Override
     public boolean shouldRefresh(World world, BlockPos pos, IBlockState oldState, IBlockState newSate)
     {
-        return oldState.getBlock() != newSate.getBlock();
+        boolean should = oldState.getBlock() != newSate.getBlock();
+        if (isEntangle && should) {
+            EntangleData.getInstance(world).removeFromEntangle(entangleId, this);
+        }
+        return should;
     }
 
     @Override

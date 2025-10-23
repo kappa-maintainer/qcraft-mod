@@ -1,6 +1,7 @@
 package dan200.qcraft.entangle;
 
 import dan200.qcraft.Reference;
+import dan200.qcraft.tileentity.QBlockTileEntity;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTUtil;
@@ -9,7 +10,9 @@ import net.minecraft.world.storage.MapStorage;
 import net.minecraft.world.storage.WorldSavedData;
 import net.minecraftforge.common.util.Constants;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -21,7 +24,7 @@ public class EntangleData extends WorldSavedData {
         super(DATA_NAME);
     }
     
-    private static final Map<UUID, SideHolder> entangleMap = new HashMap<>();
+    private static final Map<UUID, List<QBlockTileEntity>> entangleMap = new HashMap<>();
 
     @Override
     public void readFromNBT(NBTTagCompound compound) {
@@ -29,7 +32,7 @@ public class EntangleData extends WorldSavedData {
         groupList.forEach(nbtBase -> {
             UUID uuid = NBTUtil.getUUIDFromTag(((NBTTagCompound) nbtBase).getCompoundTag("uuid"));
             short side = ((NBTTagCompound) nbtBase).getShort("side");
-            entangleMap.put(uuid, new SideHolder(side));
+            entangleMap.put(uuid, new ArrayList<>());
             
         });
     }
@@ -40,7 +43,6 @@ public class EntangleData extends WorldSavedData {
         for (var entry : entangleMap.entrySet()) {
             NBTTagCompound entangleGroup = new NBTTagCompound();
             entangleGroup.setTag("uuid", NBTUtil.createUUIDTag(entry.getKey()));
-            entangleGroup.setShort("side", entry.getValue().getSide());
             groupList.appendTag(entangleGroup);
             
         }
@@ -60,8 +62,21 @@ public class EntangleData extends WorldSavedData {
         return instance;
     }
     
-    public SideHolder getSideFromUUID(UUID uuid, short defaultSide) {
-        return entangleMap.computeIfAbsent(uuid, uuid1 -> new SideHolder(defaultSide));
+    public void addToEntangle(UUID uuid, QBlockTileEntity qte) {
+        List<QBlockTileEntity> list = entangleMap.computeIfAbsent(uuid, uuid1 -> new ArrayList<>());
+        list.add(qte);
+    }
+
+    public void removeFromEntangle(UUID uuid, QBlockTileEntity qte) {
+        List<QBlockTileEntity> list = entangleMap.computeIfAbsent(uuid, uuid1 -> new ArrayList<>());
+        list.remove(qte);
+    }
+    
+    public void observe(UUID uuid, short side) {
+        List<QBlockTileEntity> list = entangleMap.computeIfAbsent(uuid, uuid1 -> new ArrayList<>());
+        for (var te : list) {
+            te.nonForceObserve(side);
+        }
     }
     
 }
