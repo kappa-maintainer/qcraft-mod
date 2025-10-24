@@ -20,6 +20,8 @@ dependencies {
         compileOnly 'com.cleanroommc:lwjglx:1.0.0'
     }
 
+    modImplementation 'mezz:jei:4.29.8'
+
     //implementation 'codechicken:CodeChickenLib:3.3.5:dev'
 
     //modImplementation 'curse.maven:ctm-vintage-1350228:7014039'

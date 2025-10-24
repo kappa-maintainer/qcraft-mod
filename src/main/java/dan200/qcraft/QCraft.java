@@ -39,6 +39,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.oredict.OreDictionary;
 import net.minecraftforge.registries.IForgeRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -187,6 +188,8 @@ public class QCraft {
     
     @EventHandler
     public static void postInit(FMLPostInitializationEvent event) {
+        OreDictionary.registerOre("oreQuantum", QCraftBlocks.blockQuantumOre);
+        OreDictionary.registerOre("dustQuantum", QCraftItems.itemQuantumDust);
     }
     
     @EventHandler
