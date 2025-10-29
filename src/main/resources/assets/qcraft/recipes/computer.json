@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern":
+  [
+    "iii",
+    "iqi",
+    "igi"
+  ],
+  "key":
+  {
+    "i":
+    {
+      "type": "forge:ore_dict",
+      "ore": "ingotIron"
+    },
+    "g":
+    {
+      "type": "forge:ore_dict",
+      "ore": "paneGlass"
+    },
+    "q":
+    {
+      "type": "forge:ore_dict",
+      "ore": "dustQuantum"
+    }
+  },
+  "result":
+  {
+    "item": "qcraft:computer",
+    "count": 1
+  }
+}

@@ -3,6 +3,7 @@ package dan200.qcraft;
 import dan200.qcraft.block.BlockFuzz;
 import dan200.qcraft.block.BlockObserver;
 import dan200.qcraft.block.BlockQBlock;
+import dan200.qcraft.block.BlockQuantumComputer;
 import dan200.qcraft.block.BlockQuantumOre;
 import dan200.qcraft.block.BlockRandomQBlock;
 import dan200.qcraft.block.BlockSwirl;
@@ -18,6 +19,7 @@ public class QCraftBlocks {
     public static BlockFuzz blockFuzz;
     public static BlockSwirl blockSwirl;
     public static Block blockTransparent;
+    public static BlockQuantumComputer blockQuantumComputer;
 
 
 }

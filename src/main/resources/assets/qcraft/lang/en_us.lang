@@ -3,7 +3,7 @@ tile.qcraft.odb.name=Observer Dependent Block
 tile.qcraft.odb_entangled.name=Entangled Block
 tile.qcraft.qblock.name=Quantum Block
 tile.qcraft.qblock_entangled.name=Entangled Quantum Block
-tile.qcraft.computer.name=Quantum Computer
+tile.qcraft.computer.name=Quantum Computer (WIP)
 tile.qcraft.computer_entangled.name=Entangled Quantum Computer
 tile.qcraft.portal.name=Quantum Portal
 tile.qcraft.automatic_observer.name=Automatic Observer
@@ -16,7 +16,7 @@ item.qcraft.goggles.name=Quantum Goggles
 item.qcraft.ao_goggles.name=Anti-Observation Goggles
 item.qcraft.itemMissing.name=Missing Item Container
 
-itemgroup.qcraft.name=qCraft
+itemgroup.qcraft.name=qCraft Decohered
 
 gui.qcraft.computer.energize=Energize
 gui.qcraft.computer.deenergize=De-energize

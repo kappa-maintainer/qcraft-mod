@@ -4,6 +4,7 @@ package dan200.qcraft;
 import dan200.qcraft.block.BlockFuzz;
 import dan200.qcraft.block.BlockObserver;
 import dan200.qcraft.block.BlockQBlock;
+import dan200.qcraft.block.BlockQuantumComputer;
 import dan200.qcraft.block.BlockQuantumOre;
 import dan200.qcraft.block.BlockRandomQBlock;
 import dan200.qcraft.block.BlockSwirl;
@@ -93,6 +94,7 @@ public class QCraft {
         QCraftBlocks.blockQBlock = (BlockQBlock) new BlockQBlock().setRegistryName("qcraft:qblock");
         QCraftBlocks.blockRandomQBlock = (BlockRandomQBlock) new BlockRandomQBlock().setRegistryName("qcraft:random_qblock");
         QCraftBlocks.blockTransparent = new Block(Material.AIR).setRegistryName("qcraft:transparent").setTranslationKey("qcraft.transparent");
+        QCraftBlocks.blockQuantumComputer = new BlockQuantumComputer();
 
         IForgeRegistry<Block> registry = event.getRegistry();
         registry.register(QCraftBlocks.blockFuzz);
@@ -103,6 +105,7 @@ public class QCraft {
         registry.register(QCraftBlocks.blockQBlock);
         registry.register(QCraftBlocks.blockRandomQBlock);
         registry.register(QCraftBlocks.blockTransparent);
+        registry.register(QCraftBlocks.blockQuantumComputer);
 
         GameRegistry.registerTileEntity(QBlockTileEntity.class, new ResourceLocation("qcraft:qbte"));
         GameRegistry.registerTileEntity(RandomQBlockTileEntity.class, new ResourceLocation("qcraft:rqbte"));
@@ -120,6 +123,7 @@ public class QCraft {
         QCraftItems.itemAntiObserveGoggle = new ItemAntiObserveGoggle();
         QCraftItems.itemBlockQBlock = (ItemBlockQBlock) new ItemBlockQBlock(QCraftBlocks.blockQBlock).setRegistryName("qcraft:qblock");
         QCraftItems.itemBlockRandomQBlock = (ItemBlockRandomQBlock) new ItemBlockRandomQBlock(QCraftBlocks.blockRandomQBlock).setRegistryName("qcraft:random_qblock");
+        QCraftItems.itemBlockQuantumComputer = new ItemBlockQuantumComputer(QCraftBlocks.blockQuantumComputer);
 
         IForgeRegistry<Item> registry = event.getRegistry();
         registry.register(QCraftItems.itemQuantumDust);
@@ -132,6 +136,7 @@ public class QCraft {
         registry.register(QCraftItems.itemAntiObserveGoggle);
         registry.register(QCraftItems.itemBlockQBlock);
         registry.register(QCraftItems.itemBlockRandomQBlock);
+        registry.register(QCraftItems.itemBlockQuantumComputer);
 
     }
     @SideOnly(Side.CLIENT)
@@ -153,6 +158,8 @@ public class QCraft {
                 new ModelResourceLocation(QCraftItems.itemQuantumGoggle.getRegistryName(), "inventory"));
         ModelLoader.setCustomModelResourceLocation(QCraftItems.itemAntiObserveGoggle, 0,
                 new ModelResourceLocation(QCraftItems.itemAntiObserveGoggle.getRegistryName(), "inventory"));
+        ModelLoader.setCustomModelResourceLocation(QCraftItems.itemBlockQuantumComputer, 0,
+                new ModelResourceLocation(QCraftItems.itemBlockQuantumComputer.getRegistryName(), "inventory"));
 
         ModelLoader.setCustomMeshDefinition(QCraftItems.itemBlockQBlock, new  QBlockMeshDefinition());
         ModelLoader.setCustomMeshDefinition(QCraftItems.itemBlockRandomQBlock, new  QBlockMeshDefinition());

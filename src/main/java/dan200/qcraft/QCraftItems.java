@@ -13,4 +13,5 @@ public class QCraftItems {
     public static ItemAntiObserveGoggle itemAntiObserveGoggle;
     public static ItemBlockQBlock itemBlockQBlock;
     public static ItemBlockRandomQBlock itemBlockRandomQBlock;
+    public static ItemBlockQuantumComputer itemBlockQuantumComputer;
 }
